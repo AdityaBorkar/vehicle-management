@@ -6,7 +6,7 @@ export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
     const { data } = await authClient.getSession();
     if (data?.user) {
-      throw redirect({ to: "/" });
+      throw redirect({ to: "/dashboard" });
     }
   },
   component: AuthLayout,

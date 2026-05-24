@@ -9,7 +9,7 @@ type StringFieldProps = {
   field: ControllerRenderProps;
   meta: FieldMeta | undefined;
   disabled: boolean | undefined;
-  checks?: string[];
+  checks?: string[] | undefined;
 };
 
 function StringField({ field, meta, disabled, checks }: StringFieldProps) {
@@ -20,7 +20,9 @@ function StringField({ field, meta, disabled, checks }: StringFieldProps) {
       <Textarea
         disabled={disabled}
         onBlur={field.onBlur}
-        onChange={(e) => field.onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+          field.onChange(e.target.value)
+        }
         placeholder={meta?.placeholder}
         ref={field.ref}
         value={field.value ?? ""}

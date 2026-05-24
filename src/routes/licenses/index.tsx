@@ -14,7 +14,7 @@ export const Route = createFileRoute("/licenses/")({
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ import {
 import { orpc } from "@/lib/orpc-query";
 
 function LicensesPage() {
+  const uid = useId();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<LicenseForm | null>(null);
   const queryClient = useQueryClient();
@@ -100,17 +101,11 @@ function LicensesPage() {
     setEditing({
       address: license.address ?? "",
       bloodGroup: license.bloodGroup ?? "",
-      dateOfBirth: license.dateOfBirth
-        ? license.dateOfBirth.toISOString().split("T")[0]
-        : "",
-      expiryDate: license.expiryDate
-        ? license.expiryDate.toISOString().split("T")[0]
-        : "",
+      dateOfBirth: license.dateOfBirth ? toDateInput(license.dateOfBirth) : "",
+      expiryDate: license.expiryDate ? toDateInput(license.expiryDate) : "",
       holderName: license.holderName,
       id: license.id,
-      issueDate: license.issueDate
-        ? license.issueDate.toISOString().split("T")[0]
-        : "",
+      issueDate: license.issueDate ? toDateInput(license.issueDate) : "",
       licenseNumber: license.licenseNumber,
       vehicleClasses: license.vehicleClasses ?? "",
     });
@@ -192,30 +187,32 @@ function LicensesPage() {
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="licenseNumber">License Number *</Label>
+                  <Label htmlFor={`${uid}-licenseNumber`}>
+                    License Number *
+                  </Label>
                   <Input
                     defaultValue={editing?.licenseNumber ?? ""}
-                    id="licenseNumber"
+                    id={`${uid}-licenseNumber`}
                     name="licenseNumber"
                     placeholder="MH0120180123456"
                     required
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="holderName">Holder Name *</Label>
+                  <Label htmlFor={`${uid}-holderName`}>Holder Name *</Label>
                   <Input
                     defaultValue={editing?.holderName ?? ""}
-                    id="holderName"
+                    id={`${uid}-holderName`}
                     name="holderName"
                     placeholder="John Doe"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Label htmlFor={`${uid}-dateOfBirth`}>Date of Birth</Label>
                   <Input
                     defaultValue={editing?.dateOfBirth ?? ""}
-                    id="dateOfBirth"
+                    id={`${uid}-dateOfBirth`}
                     name="dateOfBirth"
                     type="date"
                   />
@@ -242,37 +239,39 @@ function LicensesPage() {
                   </Select>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor={`${uid}-address`}>Address</Label>
                   <Input
                     defaultValue={editing?.address ?? ""}
-                    id="address"
+                    id={`${uid}-address`}
                     name="address"
                     placeholder="123 Main St, City"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vehicleClasses">Vehicle Classes</Label>
+                  <Label htmlFor={`${uid}-vehicleClasses`}>
+                    Vehicle Classes
+                  </Label>
                   <Input
                     defaultValue={editing?.vehicleClasses ?? ""}
-                    id="vehicleClasses"
+                    id={`${uid}-vehicleClasses`}
                     name="vehicleClasses"
                     placeholder="LMV, MCWG"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="issueDate">Issue Date</Label>
+                  <Label htmlFor={`${uid}-issueDate`}>Issue Date</Label>
                   <Input
                     defaultValue={editing?.issueDate ?? ""}
-                    id="issueDate"
+                    id={`${uid}-issueDate`}
                     name="issueDate"
                     type="date"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="expiryDate">Expiry Date</Label>
+                  <Label htmlFor={`${uid}-expiryDate`}>Expiry Date</Label>
                   <Input
                     defaultValue={editing?.expiryDate ?? ""}
-                    id="expiryDate"
+                    id={`${uid}-expiryDate`}
                     name="expiryDate"
                     type="date"
                   />
@@ -406,6 +405,10 @@ export function LicenseExpiryBadge({ date }: { date: Date }) {
       </Badge>
     );
   return <Badge variant="secondary">{daysLeft}d</Badge>;
+}
+
+function toDateInput(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
 type LicenseForm = {

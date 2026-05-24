@@ -11,7 +11,7 @@ export type ValidationMode = "onBlur" | "onChange" | "onSubmit" | "all";
 
 type FormRenderMethods = ReturnType<typeof useForm>;
 
-export type FormProps<T extends z.ZodObject<any>> = {
+export type FormProps<T extends z.ZodType> = {
   schema: T;
   onSubmit: (values: z.infer<T>) => void;
   onInvalid?: (errors: FieldErrors) => void;
@@ -19,10 +19,10 @@ export type FormProps<T extends z.ZodObject<any>> = {
   validationMode?: ValidationMode;
   className?: string;
   children: React.ReactNode | ((methods: FormRenderMethods) => React.ReactNode);
-  ref?: React.Ref<any>;
+  ref?: React.Ref<unknown>;
 };
 
-export function Form<T extends z.ZodObject<any>>({
+export function Form<T extends z.ZodType>({
   schema,
   onSubmit,
   onInvalid,
@@ -39,12 +39,13 @@ export function Form<T extends z.ZodObject<any>>({
   const methods = useForm({
     defaultValues: schemaDefaults,
     mode: validationMode,
-    resolver: zodResolver(schema) as any,
+    // biome-ignore lint/suspicious/noExplicitAny: react-hook-form resolver type mismatch with zodResolver (exactOptionalPropertyTypes)
+    resolver: zodResolver(schema as any) as any,
     reValidateMode: "onChange",
   });
 
   if (ref) {
-    (ref as React.MutableRefObject<any>).current = methods;
+    (ref as React.MutableRefObject<unknown>).current = methods;
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -52,6 +53,7 @@ export function Form<T extends z.ZodObject<any>>({
     methods.handleSubmit((values) => {
       const parsed = schema.parse(values);
       onSubmit(parsed as z.infer<T>);
+      // biome-ignore lint/suspicious/noExplicitAny: react-hook-form handleSubmit callback signature mismatch
     }, onInvalid as any)();
   }
 

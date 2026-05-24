@@ -86,12 +86,25 @@
   "overrides": [
     {
       "includes": [
-        "src/components/ui/**",
-        "src/components/data-table-filter/**"
+        "./src/components/ui/**",
+        "./src/components/data-table-filter/**"
       ],
       "linter": {
         "rules": {
-          "recommended": false
+          "recommended": false,
+          "style": {
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/routes/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": "off"
+          }
         }
       }
     }

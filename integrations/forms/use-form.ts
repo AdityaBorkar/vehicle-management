@@ -20,15 +20,16 @@ export type FieldDef = {
   kind: FieldKind;
   meta: FieldMeta | undefined;
   isOptional: boolean;
-  enumEntries?: Record<string, string>;
-  arrayElement?: FieldMap;
-  innerKind?: FieldKind;
+  enumEntries?: Record<string, string> | undefined;
+  arrayElement?: FieldMap | undefined;
+  innerKind?: FieldKind | undefined;
   innerMeta?: FieldMeta | undefined;
-  checks?: string[];
+  checks?: string[] | undefined;
 };
 
 export type FieldMap = Record<string, FieldDef>;
 
+// biome-ignore lint/suspicious/noExplicitAny: Zod internal _zod property is untyped
 export function getKind(schema: any): FieldKind {
   const type: string = schema._zod?.def?.type ?? "";
   if (type === "string") return "string";
@@ -40,6 +41,7 @@ export function getKind(schema: any): FieldKind {
   return "unknown";
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Zod internal .meta() return is untyped
 export function getMeta(schema: any): FieldMeta | undefined {
   if (typeof schema.meta === "function") {
     const result = schema.meta();
@@ -48,14 +50,19 @@ export function getMeta(schema: any): FieldMeta | undefined {
   return undefined;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Zod internal _zod property is untyped
 export function getChecks(schema: any): string[] {
   const def = schema._zod?.def;
   if (!def?.checks) return [];
-  return def.checks
-    .map((c: any) => c.format ?? c._zod?.def?.type ?? c.type)
-    .filter(Boolean);
+  return (
+    def.checks
+      // biome-ignore lint/suspicious/noExplicitAny: Zod check objects are untyped
+      .map((c: any) => c.format ?? c._zod?.def?.type ?? c.type)
+      .filter(Boolean)
+  );
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Zod internal _zod property is untyped
 export function buildFieldDef(schema: any): FieldDef {
   const kind = getKind(schema);
   const meta = getMeta(schema);
@@ -100,6 +107,7 @@ export function buildFieldDef(schema: any): FieldDef {
   };
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Zod internal .shape property is untyped
 export function buildFieldMap(schema: any): FieldMap {
   if (!schema?.shape) return {};
   const map: FieldMap = {};
@@ -109,7 +117,7 @@ export function buildFieldMap(schema: any): FieldMap {
   return map;
 }
 
-export function deriveDefault(fieldDef: FieldDef): any {
+export function deriveDefault(fieldDef: FieldDef): unknown {
   if (fieldDef.isOptional) return undefined;
   if (fieldDef.kind === "string") return "";
   if (fieldDef.kind === "number") return 0;
@@ -122,11 +130,11 @@ export function deriveDefault(fieldDef: FieldDef): any {
 }
 
 export function buildDefaults(
-  schema: z.ZodObject<any>,
-  overrides?: Record<string, any>,
-): Record<string, any> {
+  schema: z.ZodType,
+  overrides?: Record<string, unknown>,
+): Record<string, unknown> {
   const fieldMap = buildFieldMap(schema);
-  const defaults: Record<string, any> = {};
+  const defaults: Record<string, unknown> = {};
   for (const [key, def] of Object.entries(fieldMap)) {
     defaults[key] = deriveDefault(def);
   }

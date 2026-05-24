@@ -1,11 +1,16 @@
 # TODO
 
+- Routes configure
+- CRUD Interface
+- Link everything (Relations)
+- Cron Jobs and Reminders
+
 1. CRUD Vehicles and get RTO History.
 2. CRUD Driving Licenses
 3. Link GPS and FASTag and Diesel Card
 4. Settings with preferences (Group Invitation Link to Join)
 5. Group Command: @Vahan MH 01 CR 7464 (Share link that is valid for 24 hours)
-6. Reminders with WHATSAPP = EVERYDAY-UNTIL-REFRESHED-D0 / D-1 / D-3 / D-7 / D-14 [Everyday 8:30 AM]
+6. Reminders with WHATSAPP = EVERYDAY-UNTIL-REFRESHED-D0 / D-1 / D-3 / D-7 / D-14 (Everyday 8:30 AM)
 
 - Link GPS
 - Challan (Maha, Central)
@@ -13,20 +18,25 @@
 - Manage appointments for Permit and Fitness
 - Refresh FASTag History
 
-Create a CRUD app to manage vehicles and driving licenses. Use ORPC for the backend.
-
-Create a MCP Server to link with Gemini
-
-WhatsApp OTP Authentication
+- WhatsApp OTP Authentication
+- WhatsApp OTP Auth & Groups & Templates
+- Cron Jobs
+- Workflow Management
 
 - Book HSRP Number Plate
--
+- FEAT: ADD ADDRESS TO GOOGLE MAPS DETECTION ALGORITHM  
 
-FEAT: ADD ADDRESS TO GOOGLE MAPS DETECTION ALGORITHM  
+- Battle Tested Integrations
+  - Tables
+  - Forms
 
-- WhatsApp OTP Auth & Groups & Templates
+---
 
-Cron Jobs
+Mobile App to scrape SMS and report to server and keep them in Sync
+
+- Detect FASTag and Banking Transactions
+- If OTP, Skip and not report
+- If SPAM, alert to unsubscribe
 
 ---
 

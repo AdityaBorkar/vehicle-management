@@ -15,12 +15,13 @@ import type { FieldArrayConfig } from "./field-components/field-array";
 import { FieldArray } from "./field-components/field-array";
 import { NumberField } from "./field-components/number-field";
 import { StringField } from "./field-components/string-field";
-import type { FieldDef, FieldMeta } from "./use-form";
+import type { FieldDef, FieldMap, FieldMeta } from "./use-form";
 
 type FieldConfig<T extends ComboboxOption> =
   | ComboboxConfig<T>
   | FieldArrayConfig;
 
+// biome-ignore lint/style/useComponentExportOnlyModules: type-only export co-located with component
 export type { FieldConfig };
 
 type FieldProps<T extends ComboboxOption> = {
@@ -30,19 +31,21 @@ type FieldProps<T extends ComboboxOption> = {
   overrides?: (props: {
     field: ControllerRenderProps;
     config: FieldConfig<T> | undefined;
-    error?: string;
-    disabled?: boolean;
+    error?: string | undefined;
+    disabled?: boolean | undefined;
   }) => React.ReactNode;
 };
 
-function resolveFieldDef(fieldDef: FieldDef): {
+type ResolvedFieldDef = {
   kind: string;
   meta: FieldMeta | undefined;
   isOptional: boolean;
-  enumEntries?: Record<string, string>;
-  arrayElement?: Record<string, any>;
-  checks?: string[];
-} {
+  enumEntries: Record<string, string> | undefined;
+  arrayElement: FieldMap | undefined;
+  checks: string[] | undefined;
+};
+
+function resolveFieldDef(fieldDef: FieldDef): ResolvedFieldDef {
   if (fieldDef.kind === "optional") {
     return {
       arrayElement: fieldDef.arrayElement,
@@ -120,7 +123,13 @@ function Field<T extends ComboboxOption>({
         return (
           <div className="space-y-2">
             <Label>{label}</Label>
-            {renderField(resolved, field, meta, disabled, config)}
+            {renderField(
+              resolved,
+              field,
+              meta,
+              disabled,
+              config as FieldConfig<ComboboxOption> | undefined,
+            )}
             {error && <p className="text-destructive text-xs">{error}</p>}
             {meta?.description && !error && (
               <p className="text-muted-foreground text-xs">
@@ -134,17 +143,17 @@ function Field<T extends ComboboxOption>({
   );
 }
 
-function renderField<T>(
-  resolved: ReturnType<typeof resolveFieldDef>,
-  field: any,
+function renderField(
+  resolved: ResolvedFieldDef,
+  field: ControllerRenderProps,
   meta: FieldMeta | undefined,
   disabled: boolean | undefined,
-  config: FieldConfig<T> | undefined,
+  config: FieldConfig<ComboboxOption> | undefined,
 ): React.ReactNode {
   if (meta?.component === "combobox") {
     return (
       <ComboboxField
-        config={config as ComboboxConfig<any> | undefined}
+        config={config as ComboboxConfig<ComboboxOption> | undefined}
         disabled={disabled}
         field={field}
         meta={meta}
@@ -156,7 +165,7 @@ function renderField<T>(
     case "string":
       return (
         <StringField
-          checks={resolved.checks}
+          checks={resolved.checks ?? []}
           disabled={disabled}
           field={field}
           meta={meta}
@@ -187,5 +196,6 @@ function renderField<T>(
   }
 }
 
+// biome-ignore lint/style/useComponentExportOnlyModules: type-only export co-located with component
 export type { FieldProps };
 export { Field };

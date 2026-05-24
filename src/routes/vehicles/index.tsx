@@ -14,7 +14,7 @@ export const Route = createFileRoute("/vehicles/")({
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Car, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ import {
 import { orpc } from "@/lib/orpc-query";
 
 function VehiclesPage() {
+  const uid = useId();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<VehicleForm | null>(null);
   const queryClient = useQueryClient();
@@ -100,20 +101,20 @@ function VehiclesPage() {
     setEditing({
       color: vehicle.color ?? "",
       fitnessValidTill: vehicle.fitnessValidTill
-        ? vehicle.fitnessValidTill.toISOString().split("T")[0]
+        ? toDateInput(vehicle.fitnessValidTill)
         : "",
       fuelType: vehicle.fuelType ?? "",
       id: vehicle.id,
       insuranceValidTill: vehicle.insuranceValidTill
-        ? vehicle.insuranceValidTill.toISOString().split("T")[0]
+        ? toDateInput(vehicle.insuranceValidTill)
         : "",
       make: vehicle.make ?? "",
       model: vehicle.model ?? "",
       pollutionValidTill: vehicle.pollutionValidTill
-        ? vehicle.pollutionValidTill.toISOString().split("T")[0]
+        ? toDateInput(vehicle.pollutionValidTill)
         : "",
       registrationDate: vehicle.registrationDate
-        ? vehicle.registrationDate.toISOString().split("T")[0]
+        ? toDateInput(vehicle.registrationDate)
         : "",
       registrationNumber: vehicle.registrationNumber,
       year: vehicle.year?.toString() ?? "",
@@ -197,50 +198,50 @@ function VehiclesPage() {
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="registrationNumber">
+                  <Label htmlFor={`${uid}-registrationNumber`}>
                     Registration Number *
                   </Label>
                   <Input
                     defaultValue={editing?.registrationNumber ?? ""}
-                    id="registrationNumber"
+                    id={`${uid}-registrationNumber`}
                     name="registrationNumber"
                     placeholder="MH 01 CR 7464"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="make">Make</Label>
+                  <Label htmlFor={`${uid}-make`}>Make</Label>
                   <Input
                     defaultValue={editing?.make ?? ""}
-                    id="make"
+                    id={`${uid}-make`}
                     name="make"
                     placeholder="Toyota"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="model">Model</Label>
+                  <Label htmlFor={`${uid}-model`}>Model</Label>
                   <Input
                     defaultValue={editing?.model ?? ""}
-                    id="model"
+                    id={`${uid}-model`}
                     name="model"
                     placeholder="Innova"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="year">Year</Label>
+                  <Label htmlFor={`${uid}-year`}>Year</Label>
                   <Input
                     defaultValue={editing?.year ?? ""}
-                    id="year"
+                    id={`${uid}-year`}
                     name="year"
                     placeholder="2024"
                     type="number"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="color">Color</Label>
+                  <Label htmlFor={`${uid}-color`}>Color</Label>
                   <Input
                     defaultValue={editing?.color ?? ""}
-                    id="color"
+                    id={`${uid}-color`}
                     name="color"
                     placeholder="White"
                   />
@@ -264,41 +265,45 @@ function VehiclesPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="registrationDate">Registration Date</Label>
+                  <Label htmlFor={`${uid}-registrationDate`}>
+                    Registration Date
+                  </Label>
                   <Input
                     defaultValue={editing?.registrationDate ?? ""}
-                    id="registrationDate"
+                    id={`${uid}-registrationDate`}
                     name="registrationDate"
                     type="date"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fitnessValidTill">Fitness Valid Till</Label>
+                  <Label htmlFor={`${uid}-fitnessValidTill`}>
+                    Fitness Valid Till
+                  </Label>
                   <Input
                     defaultValue={editing?.fitnessValidTill ?? ""}
-                    id="fitnessValidTill"
+                    id={`${uid}-fitnessValidTill`}
                     name="fitnessValidTill"
                     type="date"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="insuranceValidTill">
+                  <Label htmlFor={`${uid}-insuranceValidTill`}>
                     Insurance Valid Till
                   </Label>
                   <Input
                     defaultValue={editing?.insuranceValidTill ?? ""}
-                    id="insuranceValidTill"
+                    id={`${uid}-insuranceValidTill`}
                     name="insuranceValidTill"
                     type="date"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="pollutionValidTill">
+                  <Label htmlFor={`${uid}-pollutionValidTill`}>
                     Pollution Valid Till
                   </Label>
                   <Input
                     defaultValue={editing?.pollutionValidTill ?? ""}
-                    id="pollutionValidTill"
+                    id={`${uid}-pollutionValidTill`}
                     name="pollutionValidTill"
                     type="date"
                   />
@@ -431,6 +436,10 @@ export function ExpiryBadge({ date }: { date: Date | null }) {
       </Badge>
     );
   return <Badge variant="secondary">{daysLeft}d</Badge>;
+}
+
+function toDateInput(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
 type VehicleForm = {

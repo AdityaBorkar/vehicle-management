@@ -8,7 +8,8 @@ import * as schema from "../src/db-schema/index.ts";
 
 config({ path: [".env.local", ".env"] });
 
-const DATABASE_URL = process.env.DATABASE_URL;
+// biome-ignore lint/complexity/useLiteralKeys: process.env requires bracket notation under noPropertyAccessFromIndexSignature
+const DATABASE_URL = process.env["DATABASE_URL"];
 if (!DATABASE_URL) {
   console.error("DATABASE_URL is not set. Check your .env.local file.");
   process.exit(1);
@@ -66,7 +67,7 @@ async function main() {
 
   if (existingUser.length > 0) {
     console.log(
-      `\nUser with email "${email}" already exists (id: ${existingUser[0].id}). Skipping user creation.`,
+      `\nUser with email "${email}" already exists (id: ${existingUser[0]?.id}). Skipping user creation.`,
     );
     console.log("\nDone.");
     process.exit(0);

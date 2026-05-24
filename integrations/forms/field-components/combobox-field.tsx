@@ -19,7 +19,12 @@ import {
 
 import type { FieldMeta } from "../use-form";
 
-type ComboboxOption = Record<string, any>;
+type ComboboxOption = {
+  label?: string;
+  name?: string;
+  value?: string | number;
+  id?: string | number;
+};
 
 type ComboboxConfig<TOption extends ComboboxOption = ComboboxOption> = {
   options?: TOption[];
@@ -33,7 +38,7 @@ type ComboboxFieldProps = {
   field: ControllerRenderProps;
   meta: FieldMeta | undefined;
   disabled: boolean | undefined;
-  config: ComboboxConfig<any> | undefined;
+  config: ComboboxConfig<ComboboxOption> | undefined;
 };
 
 function defaultGetOptionLabel(o: ComboboxOption): string {
@@ -41,7 +46,7 @@ function defaultGetOptionLabel(o: ComboboxOption): string {
 }
 
 function defaultGetOptionValue(o: ComboboxOption): string | number {
-  return o.value ?? o.id;
+  return o.value ?? o.id ?? "";
 }
 
 function ComboboxField({ field, meta, disabled, config }: ComboboxFieldProps) {
@@ -118,5 +123,6 @@ function ComboboxField({ field, meta, disabled, config }: ComboboxFieldProps) {
   );
 }
 
+// biome-ignore lint/style/useComponentExportOnlyModules: type-only exports co-located with component
 export type { ComboboxConfig, ComboboxOption };
 export { ComboboxField };

@@ -104,7 +104,7 @@ function VehicleDetailPage() {
               label="Make / Model"
               value={[vehicle.make, vehicle.model].filter(Boolean).join(" ")}
             />
-            <DetailRow label="Year" value={vehicle.year?.toString()} />
+            <DetailRow label="Year" value={vehicle.year?.toString() ?? null} />
             <DetailRow label="Color" value={vehicle.color} />
             <DetailRow
               label="Registration Date"
@@ -241,7 +241,7 @@ export function DetailRow({
   badge,
 }: {
   label: string;
-  value?: string | null;
+  value?: string | null | undefined;
   badge?: React.ReactNode;
 }) {
   return (

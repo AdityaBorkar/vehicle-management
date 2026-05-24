@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/auth/login")({
 });
 
 function LoginPage() {
+  const uid = useId();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [code, setCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -83,10 +84,10 @@ function LoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="otp">OTP</Label>
+              <Label htmlFor={`${uid}-otp`}>OTP</Label>
               <Input
                 autoFocus
-                id="otp"
+                id={`${uid}-otp`}
                 inputMode="numeric"
                 maxLength={6}
                 onChange={(e) => setCode(e.target.value)}
@@ -123,10 +124,10 @@ function LoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor={`${uid}-phone`}>Phone Number</Label>
               <Input
                 autoFocus
-                id="phone"
+                id={`${uid}-phone`}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+919876543210"
                 required

@@ -1,4 +1,5 @@
 import { IconPlus, IconTrash } from "@tabler/icons-react";
+import type { Control } from "react-hook-form";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ type FieldArrayConfig = {
   addLabel?: string;
   maxItems?: number;
   renderRow?: (props: {
-    fields: Record<string, any>;
+    fields: Record<string, unknown>;
     index: number;
     remove: () => void;
   }) => React.ReactNode;
@@ -21,7 +22,7 @@ type FieldArrayProps = {
   disabled: boolean | undefined;
   elementFields: FieldMap | undefined;
   config: FieldArrayConfig | undefined;
-  control: any;
+  control: Control;
   name: string;
 };
 
@@ -46,7 +47,7 @@ function FieldArray({
   function handleAdd() {
     if (disabled) return;
     if (maxItems && fields.length >= maxItems) return;
-    const defaults: Record<string, any> = {};
+    const defaults: Record<string, unknown> = {};
     if (elementFields) {
       for (const [key, def] of Object.entries(elementFields)) {
         if (def.kind === "string") defaults[key] = "";
@@ -63,7 +64,7 @@ function FieldArray({
         {fields.map((item, index) => (
           <div key={item.id}>
             {config?.renderRow?.({
-              fields: item as Record<string, any>,
+              fields: item as Record<string, unknown>,
               index,
               remove: () => remove(index),
             })}
@@ -134,5 +135,6 @@ function FieldArray({
   );
 }
 
+// biome-ignore lint/style/useComponentExportOnlyModules: type-only export co-located with component
 export type { FieldArrayConfig };
 export { FieldArray };
