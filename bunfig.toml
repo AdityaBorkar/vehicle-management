@@ -1,0 +1,37 @@
+telemetry = false
+logLevel = "warn"
+
+[console]
+depth = 10
+
+[run]
+bun = true
+silent = false
+
+[install]
+auto = "disable"
+minimumReleaseAge = 259200
+minimumReleaseAgeExcludes = ["@types/node", "typescript", "bun-types"]
+
+[install.lockfile]
+save = true
+
+[test]
+# coverage = true
+# coverageThreshold = 0.8
+# coverageSkipTestFiles = true
+# coverageReporter = ["text", "lcov"]
+# coverageDir = "coverage"
+# pathIgnorePatterns = [
+#   "node_modules/**",
+#   "dist/**",
+#   "build/**",
+#   ".next/**",
+#   "coverage/**",
+#   "fixtures/**"
+# ]
+randomize = true
+onlyFailures = true
+
+# [test.reporter]
+# junit = "test-results.xml"

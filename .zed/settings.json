@@ -1,0 +1,18 @@
+{
+  "file_scan_exclusions": [
+    "**/.codegraphcontext",
+    "**/.entire",
+    "**/.git",
+    "**/.tanstack",
+    "**/.wrangler",
+    "**/node_modules"
+  ],
+  "format_on_save": "on",
+  "formatter": {
+    "external": {
+      "arguments": ["format", "--stdin-file-path", "{buffer_path}"],
+      "command": "biome"
+    }
+  },
+  "language_servers": ["!eslint", "!typescript-language-server", "..."]
+}
