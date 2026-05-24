@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
-export const Route = createFileRoute("/auth/login")({
+export const Route = createFileRoute("/")({
   component: LoginPage,
 });
 

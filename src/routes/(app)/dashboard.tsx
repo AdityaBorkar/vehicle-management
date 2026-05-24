@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authClient } from "@/lib/auth/client";
 import { orpc } from "@/lib/orpc-query";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/(app)/dashboard")({
   beforeLoad: async () => {
     const { data } = await authClient.getSession();
     if (!data?.user) {

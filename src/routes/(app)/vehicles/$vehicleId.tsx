@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authClient } from "@/lib/auth/client";
 import { orpc } from "@/lib/orpc-query";
 
-export const Route = createFileRoute("/vehicles/$vehicleId")({
+export const Route = createFileRoute("/(app)/vehicles/$vehicleId")({
   beforeLoad: async () => {
     const { data } = await authClient.getSession();
     if (!data?.user) {

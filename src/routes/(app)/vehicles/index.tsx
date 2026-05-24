@@ -2,18 +2,18 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth/client";
 
-export const Route = createFileRoute("/licenses/")({
+export const Route = createFileRoute("/(app)/vehicles/")({
   beforeLoad: async () => {
     const { data } = await authClient.getSession();
     if (!data?.user) {
       throw redirect({ to: "/auth/login" });
     }
   },
-  component: LicensesPage,
+  component: VehiclesPage,
 });
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Car, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
@@ -54,60 +54,70 @@ import {
 } from "@/components/ui/table";
 import { orpc } from "@/lib/orpc-query";
 
-function LicensesPage() {
+function VehiclesPage() {
   const uid = useId();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<LicenseForm | null>(null);
+  const [editing, setEditing] = useState<VehicleForm | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: licenseList, isLoading } = useQuery(
-    orpc.license.list.queryOptions(),
+  const { data: vehicleList, isLoading } = useQuery(
+    orpc.vehicle.list.queryOptions(),
   );
   const createMutation = useMutation(
-    orpc.license.create.mutationOptions({
+    orpc.vehicle.create.mutationOptions({
       onError: (err) => toast.error(err.message),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: orpc.license.list.key() });
+        queryClient.invalidateQueries({ queryKey: orpc.vehicle.list.key() });
         setOpen(false);
         setEditing(null);
-        toast.success("License created successfully");
+        toast.success("Vehicle created successfully");
       },
     }),
   );
   const updateMutation = useMutation(
-    orpc.license.update.mutationOptions({
+    orpc.vehicle.update.mutationOptions({
       onError: (err) => toast.error(err.message),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: orpc.license.list.key() });
+        queryClient.invalidateQueries({ queryKey: orpc.vehicle.list.key() });
         setOpen(false);
         setEditing(null);
-        toast.success("License updated successfully");
+        toast.success("Vehicle updated successfully");
       },
     }),
   );
   const deleteMutation = useMutation(
-    orpc.license.remove.mutationOptions({
+    orpc.vehicle.remove.mutationOptions({
       onError: (err) => toast.error(err.message),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: orpc.license.list.key() });
-        toast.success("License deleted");
+        queryClient.invalidateQueries({ queryKey: orpc.vehicle.list.key() });
+        toast.success("Vehicle deleted");
       },
     }),
   );
 
-  const licenses = licenseList ?? [];
+  const vehicles = vehicleList ?? [];
 
-  function handleEdit(license: (typeof licenses)[0]) {
+  function handleEdit(vehicle: (typeof vehicles)[0]) {
     setEditing({
-      address: license.address ?? "",
-      bloodGroup: license.bloodGroup ?? "",
-      dateOfBirth: license.dateOfBirth ? toDateInput(license.dateOfBirth) : "",
-      expiryDate: license.expiryDate ? toDateInput(license.expiryDate) : "",
-      holderName: license.holderName,
-      id: license.id,
-      issueDate: license.issueDate ? toDateInput(license.issueDate) : "",
-      licenseNumber: license.licenseNumber,
-      vehicleClasses: license.vehicleClasses ?? "",
+      color: vehicle.color ?? "",
+      fitnessValidTill: vehicle.fitnessValidTill
+        ? toDateInput(vehicle.fitnessValidTill)
+        : "",
+      fuelType: vehicle.fuelType ?? "",
+      id: vehicle.id,
+      insuranceValidTill: vehicle.insuranceValidTill
+        ? toDateInput(vehicle.insuranceValidTill)
+        : "",
+      make: vehicle.make ?? "",
+      model: vehicle.model ?? "",
+      pollutionValidTill: vehicle.pollutionValidTill
+        ? toDateInput(vehicle.pollutionValidTill)
+        : "",
+      registrationDate: vehicle.registrationDate
+        ? toDateInput(vehicle.registrationDate)
+        : "",
+      registrationNumber: vehicle.registrationNumber,
+      year: vehicle.year?.toString() ?? "",
     });
     setOpen(true);
   }
@@ -116,29 +126,30 @@ function LicensesPage() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const data = {
-      address: (fd.get("address") as string) || undefined,
-      bloodGroup: ((fd.get("bloodGroup") as string) || undefined) as
-        | "A+"
-        | "A-"
-        | "B+"
-        | "B-"
-        | "AB+"
-        | "AB-"
-        | "O+"
-        | "O-"
+      color: (fd.get("color") as string) || undefined,
+      fitnessValidTill: fd.get("fitnessValidTill")
+        ? new Date(fd.get("fitnessValidTill") as string)
+        : undefined,
+      fuelType: ((fd.get("fuelType") as string) || undefined) as
+        | "Diesel"
+        | "Petrol"
+        | "CNG"
+        | "EV"
+        | "Other"
         | undefined,
-      dateOfBirth: fd.get("dateOfBirth")
-        ? new Date(fd.get("dateOfBirth") as string)
+      insuranceValidTill: fd.get("insuranceValidTill")
+        ? new Date(fd.get("insuranceValidTill") as string)
         : undefined,
-      expiryDate: fd.get("expiryDate")
-        ? new Date(fd.get("expiryDate") as string)
+      make: (fd.get("make") as string) || undefined,
+      model: (fd.get("model") as string) || undefined,
+      pollutionValidTill: fd.get("pollutionValidTill")
+        ? new Date(fd.get("pollutionValidTill") as string)
         : undefined,
-      holderName: fd.get("holderName") as string,
-      issueDate: fd.get("issueDate")
-        ? new Date(fd.get("issueDate") as string)
+      registrationDate: fd.get("registrationDate")
+        ? new Date(fd.get("registrationDate") as string)
         : undefined,
-      licenseNumber: fd.get("licenseNumber") as string,
-      vehicleClasses: (fd.get("vehicleClasses") as string) || undefined,
+      registrationNumber: fd.get("registrationNumber") as string,
+      year: fd.get("year") ? Number(fd.get("year")) : undefined,
     };
 
     if (editing?.id) {
@@ -159,7 +170,7 @@ function LicensesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-bold text-2xl">Driving Licenses</h1>
+        <h1 className="font-bold text-2xl">Vehicles</h1>
         <Dialog
           onOpenChange={(v: boolean) => {
             setOpen(v);
@@ -170,109 +181,130 @@ function LicensesPage() {
           <DialogTrigger>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add License
+              Add Vehicle
             </Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
-                {editing ? "Edit License" : "Add License"}
+                {editing ? "Edit Vehicle" : "Add Vehicle"}
               </DialogTitle>
               <DialogDescription>
                 {editing
-                  ? "Update license details"
-                  : "Enter driving license details"}
+                  ? "Update vehicle details"
+                  : "Enter vehicle registration details"}
               </DialogDescription>
             </DialogHeader>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor={`${uid}-licenseNumber`}>
-                    License Number *
+                  <Label htmlFor={`${uid}-registrationNumber`}>
+                    Registration Number *
                   </Label>
                   <Input
-                    defaultValue={editing?.licenseNumber ?? ""}
-                    id={`${uid}-licenseNumber`}
-                    name="licenseNumber"
-                    placeholder="MH0120180123456"
-                    required
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor={`${uid}-holderName`}>Holder Name *</Label>
-                  <Input
-                    defaultValue={editing?.holderName ?? ""}
-                    id={`${uid}-holderName`}
-                    name="holderName"
-                    placeholder="John Doe"
+                    defaultValue={editing?.registrationNumber ?? ""}
+                    id={`${uid}-registrationNumber`}
+                    name="registrationNumber"
+                    placeholder="MH 01 CR 7464"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`${uid}-dateOfBirth`}>Date of Birth</Label>
+                  <Label htmlFor={`${uid}-make`}>Make</Label>
                   <Input
-                    defaultValue={editing?.dateOfBirth ?? ""}
-                    id={`${uid}-dateOfBirth`}
-                    name="dateOfBirth"
-                    type="date"
+                    defaultValue={editing?.make ?? ""}
+                    id={`${uid}-make`}
+                    name="make"
+                    placeholder="Toyota"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bloodGroup">Blood Group</Label>
+                  <Label htmlFor={`${uid}-model`}>Model</Label>
+                  <Input
+                    defaultValue={editing?.model ?? ""}
+                    id={`${uid}-model`}
+                    name="model"
+                    placeholder="Innova"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`${uid}-year`}>Year</Label>
+                  <Input
+                    defaultValue={editing?.year ?? ""}
+                    id={`${uid}-year`}
+                    name="year"
+                    placeholder="2024"
+                    type="number"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`${uid}-color`}>Color</Label>
+                  <Input
+                    defaultValue={editing?.color ?? ""}
+                    id={`${uid}-color`}
+                    name="color"
+                    placeholder="White"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fuelType">Fuel Type</Label>
                   <Select
-                    defaultValue={editing?.bloodGroup ?? ""}
-                    name="bloodGroup"
+                    defaultValue={editing?.fuelType ?? ""}
+                    name="fuelType"
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder="Select fuel type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="AB+">AB+</SelectItem>
-                      <SelectItem value="AB-">AB-</SelectItem>
-                      <SelectItem value="O+">O+</SelectItem>
-                      <SelectItem value="O-">O-</SelectItem>
+                      <SelectItem value="Diesel">Diesel</SelectItem>
+                      <SelectItem value="Petrol">Petrol</SelectItem>
+                      <SelectItem value="CNG">CNG</SelectItem>
+                      <SelectItem value="EV">EV</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor={`${uid}-address`}>Address</Label>
-                  <Input
-                    defaultValue={editing?.address ?? ""}
-                    id={`${uid}-address`}
-                    name="address"
-                    placeholder="123 Main St, City"
-                  />
-                </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`${uid}-vehicleClasses`}>
-                    Vehicle Classes
+                  <Label htmlFor={`${uid}-registrationDate`}>
+                    Registration Date
                   </Label>
                   <Input
-                    defaultValue={editing?.vehicleClasses ?? ""}
-                    id={`${uid}-vehicleClasses`}
-                    name="vehicleClasses"
-                    placeholder="LMV, MCWG"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`${uid}-issueDate`}>Issue Date</Label>
-                  <Input
-                    defaultValue={editing?.issueDate ?? ""}
-                    id={`${uid}-issueDate`}
-                    name="issueDate"
+                    defaultValue={editing?.registrationDate ?? ""}
+                    id={`${uid}-registrationDate`}
+                    name="registrationDate"
                     type="date"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`${uid}-expiryDate`}>Expiry Date</Label>
+                  <Label htmlFor={`${uid}-fitnessValidTill`}>
+                    Fitness Valid Till
+                  </Label>
                   <Input
-                    defaultValue={editing?.expiryDate ?? ""}
-                    id={`${uid}-expiryDate`}
-                    name="expiryDate"
+                    defaultValue={editing?.fitnessValidTill ?? ""}
+                    id={`${uid}-fitnessValidTill`}
+                    name="fitnessValidTill"
+                    type="date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`${uid}-insuranceValidTill`}>
+                    Insurance Valid Till
+                  </Label>
+                  <Input
+                    defaultValue={editing?.insuranceValidTill ?? ""}
+                    id={`${uid}-insuranceValidTill`}
+                    name="insuranceValidTill"
+                    type="date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`${uid}-pollutionValidTill`}>
+                    Pollution Valid Till
+                  </Label>
+                  <Input
+                    defaultValue={editing?.pollutionValidTill ?? ""}
+                    id={`${uid}-pollutionValidTill`}
+                    name="pollutionValidTill"
                     type="date"
                   />
                 </div>
@@ -306,19 +338,19 @@ function LicensesPage() {
         </Dialog>
       </div>
 
-      {licenses.length === 0 ? (
+      {vehicles.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-12">
-            <CreditCard className="h-12 w-12 text-muted-foreground" />
+            <Car className="h-12 w-12 text-muted-foreground" />
             <div className="text-center">
-              <h2 className="font-semibold text-lg">No licenses yet</h2>
+              <h2 className="font-semibold text-lg">No vehicles yet</h2>
               <p className="text-muted-foreground text-sm">
-                Add your first driving license to get started
+                Add your first vehicle to get started
               </p>
             </div>
             <Button onClick={() => setOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Add License
+              Add Vehicle
             </Button>
           </CardContent>
         </Card>
@@ -327,35 +359,33 @@ function LicensesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>License No.</TableHead>
-                <TableHead>Holder</TableHead>
-                <TableHead>Classes</TableHead>
-                <TableHead>Blood Group</TableHead>
-                <TableHead>Expiry</TableHead>
+                <TableHead>Registration</TableHead>
+                <TableHead>Make / Model</TableHead>
+                <TableHead>Year</TableHead>
+                <TableHead>Fuel</TableHead>
+                <TableHead>Insurance</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {licenses.map((l) => (
-                <TableRow key={l.id}>
+              {vehicles.map((v) => (
+                <TableRow key={v.id}>
                   <TableCell className="font-medium">
-                    {l.licenseNumber}
+                    {v.registrationNumber}
                   </TableCell>
-                  <TableCell>{l.holderName}</TableCell>
-                  <TableCell>{l.vehicleClasses || "—"}</TableCell>
                   <TableCell>
-                    {l.bloodGroup ? (
-                      <Badge variant="secondary">{l.bloodGroup}</Badge>
+                    {[v.make, v.model].filter(Boolean).join(" ") || "—"}
+                  </TableCell>
+                  <TableCell>{v.year ?? "—"}</TableCell>
+                  <TableCell>
+                    {v.fuelType ? (
+                      <Badge variant="secondary">{v.fuelType}</Badge>
                     ) : (
                       "—"
                     )}
                   </TableCell>
                   <TableCell>
-                    {l.expiryDate ? (
-                      <LicenseExpiryBadge date={l.expiryDate} />
-                    ) : (
-                      "—"
-                    )}
+                    <ExpiryBadge date={v.insuranceValidTill} />
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -365,13 +395,13 @@ function LicensesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(l)}>
+                        <DropdownMenuItem onClick={() => handleEdit(v)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
-                          onClick={() => deleteMutation.mutate({ id: l.id })}
+                          onClick={() => deleteMutation.mutate({ id: v.id })}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
@@ -389,7 +419,8 @@ function LicensesPage() {
   );
 }
 
-export function LicenseExpiryBadge({ date }: { date: Date }) {
+export function ExpiryBadge({ date }: { date: Date | null }) {
+  if (!date) return <span className="text-muted-foreground">—</span>;
   const daysLeft = Math.ceil(
     (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
   );
@@ -411,14 +442,16 @@ function toDateInput(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-type LicenseForm = {
+type VehicleForm = {
   id?: number;
-  licenseNumber: string;
-  holderName: string;
-  dateOfBirth: string;
-  address: string;
-  vehicleClasses: string;
-  issueDate: string;
-  expiryDate: string;
-  bloodGroup: string;
+  registrationNumber: string;
+  make: string;
+  model: string;
+  year: string;
+  color: string;
+  fuelType: string;
+  registrationDate: string;
+  fitnessValidTill: string;
+  insuranceValidTill: string;
+  pollutionValidTill: string;
 };
