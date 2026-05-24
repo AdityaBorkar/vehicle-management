@@ -7,6 +7,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+import { drivers } from "./driver";
 import { drivingLicenses } from "./driving-license";
 import { vehicles } from "./vehicle";
 
@@ -15,6 +16,9 @@ export const reminders = pgTable("reminders", {
     mode: "date",
     withTimezone: true,
   }).defaultNow(),
+  driverId: integer("driver_id").references(() => drivers.id, {
+    onDelete: "set null",
+  }),
   dueDate: timestamp("due_date", {
     mode: "date",
     withTimezone: true,
@@ -23,7 +27,7 @@ export const reminders = pgTable("reminders", {
   licenseId: integer("license_id").references(() => drivingLicenses.id, {
     onDelete: "set null",
   }),
-  notifyDays: json("notify_days").$type<number[]>().default([0, 1, 3, 7, 14]),
+  notifyDays: json("notify_days").$type<number[]>().default([0, 7, 15, 30]),
   status: text().default("active"),
   title: text().notNull(),
   type: text().notNull(),

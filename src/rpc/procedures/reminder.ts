@@ -7,11 +7,19 @@ import { db } from "@/lib/db/server";
 import { authorized } from "../base";
 
 const reminderInputSchema = z.object({
+  driverId: z.number().int().optional(),
   dueDate: z.coerce.date(),
   licenseId: z.number().int().optional(),
   notifyDays: z.array(z.number().int()).optional(),
   title: z.string().min(1),
-  type: z.enum(["insurance", "fitness", "pollution", "license", "custom"]),
+  type: z.enum([
+    "insurance",
+    "fitness",
+    "pollution",
+    "license",
+    "dl_class",
+    "custom",
+  ]),
   vehicleId: z.number().int().optional(),
 });
 

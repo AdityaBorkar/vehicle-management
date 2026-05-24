@@ -1,24 +1,19 @@
 import { PostHogProvider as BasePostHogProvider } from "@posthog/react";
 import posthog from "posthog-js";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
-// biome-ignore lint/complexity/useLiteralKeys: import.meta.env requires bracket notation under noPropertyAccessFromIndexSignature
-if (typeof window !== "undefined" && import.meta.env["PUBLIC_POSTHOG_KEY"]) {
-  // biome-ignore lint/complexity/useLiteralKeys: import.meta.env requires bracket notation under noPropertyAccessFromIndexSignature
-  posthog.init(import.meta.env["PUBLIC_POSTHOG_KEY"], {
-    api_host:
-      // biome-ignore lint/complexity/useLiteralKeys: import.meta.env requires bracket notation under noPropertyAccessFromIndexSignature
-      import.meta.env["PUBLIC_POSTHOG_HOST"] || "https://us.i.posthog.com",
-    capture_pageview: false,
-    defaults: "2025-11-30",
-    person_profiles: "identified_only",
-  });
-}
+import { env } from "@/env";
 
-interface PostHogProviderProps {
-  children: ReactNode;
-}
-
-export default function PostHogProvider({ children }: PostHogProviderProps) {
+export default function PostHogProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      posthog.init(env.PUBLIC_POSTHOG_KEY, {
+        api_host: env.PUBLIC_POSTHOG_HOST,
+        capture_pageview: false,
+        // defaults: "2025-11-30",
+        // person_profiles: "identified_only",
+      });
+    }
+  }, []);
   return <BasePostHogProvider client={posthog}>{children}</BasePostHogProvider>;
 }

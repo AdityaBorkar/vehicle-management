@@ -15,12 +15,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
+import { getSession } from "./api/-auth";
+
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
-    const { data } = await authClient.getSession();
+    const data = await getSession();
     if (data?.user) {
       throw redirect({ to: "/dashboard" });
     }
+    return data;
   },
   component: LoginPage,
 });

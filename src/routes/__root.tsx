@@ -1,31 +1,34 @@
+import type { QueryClient } from "@tanstack/query-core";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
-  createRootRoute,
+  createRootRouteWithContext,
   HeadContent,
   Link,
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Car, CreditCard, Home, LogOut } from "lucide-react";
+import { Car, Home, LogOut, Users } from "lucide-react";
 
-import PostHogProvider from "#/posthog/provider";
+// import PostHogProvider from "#/posthog/provider";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { authClient } from "@/lib/auth/client";
 
 import appCss from "./styles.css?url";
 
-export const Route = createRootRoute({
-  head: () => ({
-    links: [{ href: appCss, rel: "stylesheet" }],
-    meta: [
-      { charSet: "utf-8" },
-      { content: "width=device-width, initial-scale=1", name: "viewport" },
-      { title: "Vehicle Management" },
-    ],
-  }),
-  shellComponent: RootDocument,
-});
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
+  {
+    head: () => ({
+      links: [{ href: appCss, rel: "stylesheet" }],
+      meta: [
+        { charSet: "utf-8" },
+        { content: "width=device-width, initial-scale=1", name: "viewport" },
+        { title: "Vehicle Management" },
+      ],
+    }),
+    shellComponent: RootDocument,
+  },
+);
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -34,19 +37,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <PostHogProvider>
-          <AppShell>{children}</AppShell>
-          <Toaster />
-          <TanStackDevtools
-            config={{ position: "bottom-right" }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
-        </PostHogProvider>
+        {/*<PostHogProvider>*/}
+        <AppShell>{children}</AppShell>
+        <Toaster />
+        <TanStackDevtools
+          config={{ position: "bottom-right" }}
+          plugins={[
+            {
+              name: "Tanstack Router",
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+          ]}
+        />
+        {/*</PostHogProvider>*/}
         <Scripts />
       </body>
     </html>
@@ -78,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-1 p-3">
           <NavLink icon={Home} label="Dashboard" to="/" />
           <NavLink icon={Car} label="Vehicles" to="/vehicles" />
-          <NavLink icon={CreditCard} label="Licenses" to="/licenses" />
+          <NavLink icon={Users} label="Drivers" to="/drivers" />
         </nav>
         <div className="border-t p-3">
           <div className="mb-2 flex items-center gap-2">

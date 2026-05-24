@@ -5,6 +5,18 @@
 - Link everything (Relations)
 - Cron Jobs and Reminders
 
+- Vehicle
+  - RTO History
+    - Permit
+    - RC
+    - Fitness
+    - Tax
+  - FASTag History
+  - Insurance History
+  - PUCC History
+  - Speed Governer
+  - VLTD
+
 1. CRUD Vehicles and get RTO History.
 2. CRUD Driving Licenses
 3. Link GPS and FASTag and Diesel Card
@@ -24,7 +36,8 @@
 - Workflow Management
 
 - Book HSRP Number Plate
-- FEAT: ADD ADDRESS TO GOOGLE MAPS DETECTION ALGORITHM  
+- FEAT: ADD ADDRESS TO GOOGLE MAPS DETECTION ALGORITHM
+- Generate Work Order or Sale Agreement
 
 - Battle Tested Integrations
   - Tables

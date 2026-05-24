@@ -1,5 +1,8 @@
+export { aadharCards } from "./aadhar-card";
 export { accounts, sessions, users, verifications } from "./auth";
 export { challans } from "./challan";
+export { dlVehicleClasses } from "./dl-vehicle-class";
+export { drivers } from "./driver";
 export { drivingLicenses } from "./driving-license";
 export { invitations, members, organizations } from "./organization";
 export { reminders } from "./reminder";

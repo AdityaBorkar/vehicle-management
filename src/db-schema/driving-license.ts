@@ -1,10 +1,13 @@
 import {
+  integer,
   pgTable,
   serial,
   text,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+import { drivers } from "./driver";
 
 export const drivingLicenses = pgTable(
   "driving_licenses",
@@ -19,10 +22,9 @@ export const drivingLicenses = pgTable(
       mode: "date",
       withTimezone: true,
     }),
-    expiryDate: timestamp("expiry_date", {
-      mode: "date",
-      withTimezone: true,
-    }),
+    driverId: integer("driver_id")
+      .notNull()
+      .references(() => drivers.id, { onDelete: "cascade" }),
     holderName: text("holder_name").notNull(),
     id: serial().primaryKey(),
     issueDate: timestamp("issue_date", {
@@ -34,8 +36,6 @@ export const drivingLicenses = pgTable(
       mode: "date",
       withTimezone: true,
     }).defaultNow(),
-    userId: text("user_id").notNull(),
-    vehicleClasses: text("vehicle_classes"),
   },
   (t) => [uniqueIndex("licenses_number_unique").on(t.licenseNumber)],
 );

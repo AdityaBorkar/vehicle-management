@@ -8,8 +8,7 @@ import * as schema from "../src/db-schema/index.ts";
 
 config({ path: [".env.local", ".env"] });
 
-// biome-ignore lint/complexity/useLiteralKeys: process.env requires bracket notation under noPropertyAccessFromIndexSignature
-const DATABASE_URL = process.env["DATABASE_URL"];
+const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
   console.error("DATABASE_URL is not set. Check your .env.local file.");
   process.exit(1);

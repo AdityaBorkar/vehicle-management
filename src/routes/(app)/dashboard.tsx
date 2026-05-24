@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, Car, CreditCard, Plus } from "lucide-react";
+import { Bell, Car, Plus, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,27 +12,19 @@ export const Route = createFileRoute("/(app)/dashboard")({
 
 function Dashboard() {
   const { data: vehicleList } = useQuery(orpc.vehicle.list.queryOptions());
-  const { data: licenseList } = useQuery(orpc.license.list.queryOptions());
+  const { data: driverList } = useQuery(orpc.driver.list.queryOptions());
   const { data: upcomingReminders } = useQuery(
     orpc.reminder.getUpcoming.queryOptions(),
   );
 
   const vehicles = vehicleList ?? [];
-  const licenses = licenseList ?? [];
+  const drivers = driverList ?? [];
   const reminders = upcomingReminders ?? [];
 
   const expiringInsurance = vehicles.filter((v) => {
     if (!v.insuranceValidTill) return false;
     const daysLeft = Math.ceil(
       (v.insuranceValidTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-    );
-    return daysLeft <= 30 && daysLeft >= 0;
-  });
-
-  const expiringLicenses = licenses.filter((l) => {
-    if (!l.expiryDate) return false;
-    const daysLeft = Math.ceil(
-      (l.expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
     );
     return daysLeft <= 30 && daysLeft >= 0;
   });
@@ -60,16 +52,11 @@ function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="font-medium text-sm">Licenses</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="font-medium text-sm">Drivers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="font-bold text-2xl">{licenses.length}</div>
-            {expiringLicenses.length > 0 && (
-              <p className="text-destructive text-xs">
-                {expiringLicenses.length} expiring soon
-              </p>
-            )}
+            <div className="font-bold text-2xl">{drivers.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -90,14 +77,14 @@ function Dashboard() {
         </Card>
       </div>
 
-      {vehicles.length === 0 && licenses.length === 0 && (
+      {vehicles.length === 0 && drivers.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-12">
             <Car className="h-12 w-12 text-muted-foreground" />
             <div className="text-center">
               <h2 className="font-semibold text-lg">Get Started</h2>
               <p className="text-muted-foreground text-sm">
-                Add your first vehicle or driving license to get started
+                Add your first vehicle or driver to get started
               </p>
             </div>
             <div className="flex gap-3">
@@ -110,7 +97,7 @@ function Dashboard() {
               <Link to="/drivers">
                 <Button variant="outline">
                   <Plus className="mr-2 h-4 w-4" />
-                  Add License
+                  Add Driver
                 </Button>
               </Link>
             </div>

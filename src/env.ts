@@ -3,12 +3,15 @@ import { z } from "zod";
 
 export const env = createEnv({
   client: {
-    PUBLIC_APP_TITLE: z.string().min(1).optional(),
+    PUBLIC_POSTHOG_HOST: z.string().min(1),
+    PUBLIC_POSTHOG_KEY: z.string().min(1),
   },
   clientPrefix: "PUBLIC_",
   emptyStringAsUndefined: true,
   runtimeEnv: typeof window === "undefined" ? process.env : import.meta.env,
   server: {
-    SERVER_URL: z.url().optional(),
+    BETTER_AUTH_SECRET: z.string().min(1),
+    BETTER_AUTH_URL: z.url().min(1),
+    DATABASE_URL: z.url().min(1),
   },
 });

@@ -21,7 +21,7 @@ Verification order: **check:lint → check:types → test**
 
 - **TanStack Start** (SSR React) + file-based routing via TanStack Router
 - **Nitro** server (`nitro-nightly` aliased as `nitro` in package.json); Sentry packages externalized in vite config
-- **oRPC** API layer — router at `src/rpc/router.ts`, procedures in `src/rpc/procedures/`, auth middleware at `src/rpc/base.ts` (`authorized` procedure requires session), catch-all route at `src/routes/api/rpc.$.ts` (prefix: `/api/rpc`), client at `src/lib/orpc-client.ts`, TanStack Query utils at `src/lib/orpc-query.ts`
+- **oRPC** API layer — router at `src/rpc/router.ts`, procedures in `src/rpc/procedures/` (`dieselCard`, `fastag`, `gpsDevice`, `license`, `reminder`, `vehicle`), auth middleware at `src/rpc/base.ts` (`authorized` procedure requires session), catch-all route at `src/routes/api/rpc.$.ts` (prefix: `/api/rpc`), client at `src/lib/orpc-client.ts`, TanStack Query utils at `src/lib/orpc-query.ts`
 - Routes: `src/routes/` — add a file, route auto-registers
 - `src/routeTree.gen.ts` — **never edit**, auto-generated
 - DB: PostgreSQL via Drizzle ORM; schema in `src/db-schema/` (barrel export at `index.ts`), instance in `src/lib/db/server.ts`
@@ -34,8 +34,8 @@ Verification order: **check:lint → check:types → test**
 ## Route Structure
 
 - `src/routes/__root.tsx` — AppShell: sidebar nav for authenticated users, unauthenticated children render without shell
-- `src/routes/(app)/route.tsx` — auth layout: **redirects logged-in users to `/dashboard`**, shows centered card layout for unauthenticated
-- `src/routes/(app)/vehicles/`, `drivers/`, `settings/`, `calendar.tsx`, `dashboard.tsx`
+- `src/routes/(app)/route.tsx` — auth guard: **redirects unauthenticated users to `/`**, wraps child routes in centered card layout
+- App routes under `(app)/`: `dashboard.tsx`, `calendar.tsx`, `vehicles/`, `drivers/`, `settings/` (`user.tsx`, `whatsapp.tsx`, `connections.tsx`), `(debug)/workflows.tsx`
 
 ## Style Conventions
 
@@ -48,6 +48,7 @@ Verification order: **check:lint → check:types → test**
 - `verbatimModuleSyntax` — use `import type` for type-only imports or tsc errors
 - `noUnusedLocals` / `noUnusedParameters` — unused vars/params fail typecheck
 - `noPropertyAccessFromIndexSignature` — use bracket notation: `process.env["KEY"]` (not `process.env.KEY`)
+- `noUncheckedIndexedAccess` — array/object bracket access returns `T | undefined`, requires null checks
 - `exactOptionalPropertyTypes` — optional props can't accept `undefined` explicitly without union type
 
 ## Setup
@@ -73,7 +74,6 @@ Verification order: **check:lint → check:types → test**
 - No `db:generate` / `db:migrate` — only `db:push` (direct schema push, no migration files)
 - Shadcn components installed via `pnpm dlx shadcn@latest add <component>` (pnpm CLI, not bun)
 - Drizzle config loads env via `dotenv` from `.env.local` and `.env`
-- Root `.env.ts` is empty (0 bytes) — not the same as `src/env.ts`
 - `@/*` resolves to `./src/*`; `#/*` resolves to `./integrations/*` (tsconfig paths)
 - `process.env` keys must use bracket notation (`process.env["KEY"]`) due to `noPropertyAccessFromIndexSignature`
 - Auth signups are disabled — new users must be created via `db:seed` or direct DB insert
