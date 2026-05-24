@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { authClient } from "@/lib/auth/client";
 
-import appCss from "../styles.css?url";
+import appCss from "./styles.css?url";
 
 export const Route = createRootRoute({
   head: () => ({

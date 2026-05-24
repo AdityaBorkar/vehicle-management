@@ -1,21 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { authClient } from "@/lib/auth/client";
 import { orpc } from "@/lib/orpc-query";
 
 export const Route = createFileRoute("/(app)/vehicles/$vehicleId")({
-  beforeLoad: async () => {
-    const { data } = await authClient.getSession();
-    if (!data?.user) {
-      throw redirect({ to: "/auth/login" });
-    }
-  },
   component: VehicleDetailPage,
 });
 

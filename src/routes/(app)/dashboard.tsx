@@ -1,19 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, Car, CreditCard, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { authClient } from "@/lib/auth/client";
 import { orpc } from "@/lib/orpc-query";
 
 export const Route = createFileRoute("/(app)/dashboard")({
-  beforeLoad: async () => {
-    const { data } = await authClient.getSession();
-    if (!data?.user) {
-      throw redirect({ to: "/auth/login" });
-    }
-  },
   component: Dashboard,
 });
 
@@ -114,7 +107,7 @@ function Dashboard() {
                   Add Vehicle
                 </Button>
               </Link>
-              <Link to="/licenses">
+              <Link to="/drivers">
                 <Button variant="outline">
                   <Plus className="mr-2 h-4 w-4" />
                   Add License

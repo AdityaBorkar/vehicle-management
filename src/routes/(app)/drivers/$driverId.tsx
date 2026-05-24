@@ -1,26 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { authClient } from "@/lib/auth/client";
 import { orpc } from "@/lib/orpc-query";
 
 export const Route = createFileRoute("/(app)/drivers/$driverId")({
-  beforeLoad: async () => {
-    const { data } = await authClient.getSession();
-    if (!data?.user) {
-      throw redirect({ to: "/auth/login" });
-    }
-  },
   component: LicenseDetailPage,
 });
 
 function LicenseDetailPage() {
-  const licenseId = Number(Route.useParams().licenseId);
+  const licenseId = Number(Route.useParams().driverId);
   const queryClient = useQueryClient();
 
   const { data: license, isLoading } = useQuery(
@@ -50,7 +43,7 @@ function LicenseDetailPage() {
         <p className="text-muted-foreground">License not found</p>
         <Link
           className="mt-2 inline-block text-primary text-sm hover:underline"
-          to="/licenses"
+          to="/drivers"
         >
           Back to Licenses
         </Link>
@@ -62,7 +55,7 @@ function LicenseDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link to="/licenses">
+          <Link to="/drivers">
             <Button size="icon" type="button" variant="ghost">
               <ArrowLeft className="h-4 w-4" />
             </Button>

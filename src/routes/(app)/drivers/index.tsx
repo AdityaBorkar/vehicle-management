@@ -1,14 +1,6 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-
-import { authClient } from "@/lib/auth/client";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/(app)/drivers/")({
-  beforeLoad: async () => {
-    const { data } = await authClient.getSession();
-    if (!data?.user) {
-      throw redirect({ to: "/auth/login" });
-    }
-  },
   component: LicensesPage,
 });
 

@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { Car } from "lucide-react";
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,12 @@ import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const { data } = await authClient.getSession();
+    if (data?.user) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
   component: LoginPage,
 });
 
@@ -66,83 +73,90 @@ function LoginPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sign In</CardTitle>
-        <CardDescription>
-          {otpSent
-            ? "Enter the OTP sent to your phone"
-            : "Enter your phone number to receive an OTP"}
-        </CardDescription>
-      </CardHeader>
-      {otpSent ? (
-        <form onSubmit={handleVerifyOtp}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
-                {error}
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+      <Card className="w-full max-w-sm shadow-lg">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Car className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="text-xl">Vahan</CardTitle>
+          <CardDescription>
+            {otpSent
+              ? "Enter the OTP sent to your phone"
+              : "Enter your phone number to receive an OTP"}
+          </CardDescription>
+        </CardHeader>
+        {otpSent ? (
+          <form onSubmit={handleVerifyOtp}>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor={`${uid}-otp`}>OTP</Label>
+                <Input
+                  autoFocus
+                  id={`${uid}-otp`}
+                  inputMode="numeric"
+                  maxLength={6}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="123456"
+                  required
+                  type="text"
+                  value={code}
+                />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor={`${uid}-otp`}>OTP</Label>
-              <Input
-                autoFocus
-                id={`${uid}-otp`}
-                inputMode="numeric"
-                maxLength={6}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="123456"
-                required
-                type="text"
-                value={code}
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
-            <Button className="w-full" disabled={loading} type="submit">
-              {loading ? "Verifying..." : "Verify OTP"}
-            </Button>
-            <button
-              className="text-muted-foreground text-sm hover:text-foreground"
-              onClick={() => {
-                setOtpSent(false);
-                setCode("");
-                setError("");
-              }}
-              type="button"
-            >
-              Use a different phone number
-            </button>
-          </CardFooter>
-        </form>
-      ) : (
-        <form onSubmit={handleSendOtp}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
-                {error}
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3">
+              <Button className="w-full" disabled={loading} type="submit">
+                {loading ? "Verifying..." : "Verify OTP"}
+              </Button>
+              <Button
+                className="text-muted-foreground"
+                onClick={() => {
+                  setOtpSent(false);
+                  setCode("");
+                  setError("");
+                }}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Use a different phone number
+              </Button>
+            </CardFooter>
+          </form>
+        ) : (
+          <form onSubmit={handleSendOtp}>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor={`${uid}-phone`}>Phone Number</Label>
+                <Input
+                  autoFocus
+                  id={`${uid}-phone`}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+919876543210"
+                  required
+                  type="tel"
+                  value={phoneNumber}
+                />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor={`${uid}-phone`}>Phone Number</Label>
-              <Input
-                autoFocus
-                id={`${uid}-phone`}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+919876543210"
-                required
-                type="tel"
-                value={phoneNumber}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full" disabled={loading} type="submit">
-              {loading ? "Sending..." : "Send OTP"}
-            </Button>
-          </CardFooter>
-        </form>
-      )}
-    </Card>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" disabled={loading} type="submit">
+                {loading ? "Sending..." : "Send OTP"}
+              </Button>
+            </CardFooter>
+          </form>
+        )}
+      </Card>
+    </div>
   );
 }
