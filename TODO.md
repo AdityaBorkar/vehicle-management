@@ -1,5 +1,47 @@
 # TODO
 
+Secure DB and infra
+Secure the logic behind it using workflow runs poweered by CLI for now.
+
+---
+
+Common Login Workflow:
+
+Go to "https://vahan.parivahan.gov.in/vahanservice/vahan/ui/statevalidation/homepage.xhtml"
+Wait for page load.
+Click on "Close" button to close dialog.
+Enter the Registration Number.
+Accept TnC checkbox and click on "Proceed" button
+Click on "Proceed" button on dialog.
+
+Status => Know your Application Status => Select Vehicle Number radio button => Enter Vehicle Number => Solve for CAPTCHA => Submit => Extract details and store in database.
+
+Reprint Receipt => Application No. Wise => Application / Tax / Payment Cart => Online Service / RTO End => Application No. => Solve CAPTCHA => Show Details => Extract details and store in database along with the PDF.
+
+Print Fitness Certificate
+
+Know Your Vehicle Details
+RC
+
+Print PUCC
+
+Green Tax
+One Time Tax
+
+SPEED GOVERNER??
+DL??
+PERMIT??
+GET INSURANCE FROM EMAIL!!
+
+Purchase Order??
+RTO Form 20??
+
+---
+
+VIEW UPLOADED DOCUMENTS??
+
+---
+
 - Routes configure
 - CRUD Interface
 - Link everything (Relations)

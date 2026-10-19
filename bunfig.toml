@@ -5,18 +5,19 @@ logLevel = "warn"
 depth = 10
 
 [run]
-bun = true
+bun = false
 silent = false
 
 [install]
 auto = "disable"
 minimumReleaseAge = 259200
-minimumReleaseAgeExcludes = ["@types/node", "typescript", "bun-types"]
 
 [install.lockfile]
 save = true
 
-[test]
+# [test]
+# randomize = true
+# onlyFailures = true
 # coverage = true
 # coverageThreshold = 0.8
 # coverageSkipTestFiles = true
@@ -30,8 +31,6 @@ save = true
 #   "coverage/**",
 #   "fixtures/**"
 # ]
-randomize = true
-onlyFailures = true
 
 # [test.reporter]
 # junit = "test-results.xml"

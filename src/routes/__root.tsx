@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Car, Home, LogOut, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 
 // import PostHogProvider from "#/posthog/provider";
 import { Button } from "#/components/ui/button";
@@ -57,8 +58,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
 	const { data: session, isPending } = authClient.useSession();
+	const [hasSettled, setHasSettled] = useState(false);
 
-	if (isPending) {
+	useEffect(() => {
+		if (!isPending) {
+			setHasSettled(true);
+		}
+	}, [isPending]);
+
+	if (!hasSettled) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

@@ -1,10 +1,24 @@
 export { aadharCards } from "./aadhar-card";
-export { accounts, sessions, users, verifications } from "./auth";
+export {
+	accounts,
+	accountsRelations,
+	authSchema,
+	invitations,
+	invitationsRelations,
+	members,
+	membersRelations,
+	organizations,
+	organizationsRelations,
+	sessions,
+	sessionsRelations,
+	users,
+	usersRelations,
+	verifications,
+} from "./auth.gen";
 export { challans } from "./challan";
 export { dlVehicleClasses } from "./dl-vehicle-class";
 export { drivers } from "./driver";
 export { drivingLicenses } from "./driving-license";
-export { invitations, members, organizations } from "./organization";
 export { reminders } from "./reminder";
 export { vehicles } from "./vehicle";
 export { dieselCards, fastags, gpsDevices } from "./vehicle-device";

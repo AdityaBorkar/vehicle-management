@@ -7,11 +7,15 @@ import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import * as schema from "#/db-schema";
 import { db } from "#/lib/db/server";
+import { isValidPhoneNumber } from "#/lib/phone";
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema,
+		schemaName: "auth",
+		transaction: true,
+		usePlural: true,
 	}),
 	databaseHooks: {
 		user: {
@@ -27,6 +31,7 @@ export const auth = betterAuth({
 	plugins: [
 		expo(),
 		phoneNumber({
+			phoneNumberValidator: (phoneNumber) => isValidPhoneNumber(phoneNumber),
 			sendOTP: ({ phoneNumber, code }) => {
 				console.log(`[OTP] phone=${phoneNumber} code=${code}`);
 			},

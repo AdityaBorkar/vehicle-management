@@ -14,6 +14,7 @@ import {
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth/client";
+import { isValidPhoneNumber, normalizePhoneNumber } from "#/lib/phone";
 import { getSession } from "./api/-auth";
 
 export const Route = createFileRoute("/")({
@@ -38,9 +39,16 @@ function LoginPage() {
 	async function handleSendOtp(e: React.FormEvent) {
 		e.preventDefault();
 		setError("");
+		const normalizedPhone = normalizePhoneNumber(phoneNumber);
+		if (!isValidPhoneNumber(normalizedPhone)) {
+			setError("Enter a valid phone number.");
+			return;
+		}
 		setLoading(true);
 		try {
-			const result = await authClient.phoneNumber.sendOtp({ phoneNumber });
+			const result = await authClient.phoneNumber.sendOtp({
+				phoneNumber: normalizedPhone,
+			});
 			if (result.error) {
 				setError(result.error.message ?? "Failed to send OTP");
 			} else {
@@ -60,10 +68,22 @@ function LoginPage() {
 		try {
 			const result = await authClient.phoneNumber.verify({
 				code,
-				phoneNumber,
+				phoneNumber: normalizePhoneNumber(phoneNumber),
 			});
 			if (result.error) {
-				setError(result.error.message ?? "Verification failed");
+				// better-auth returns 500 "Failed to update user" when no user
+				// row matches (signups are disabled, so no auto-create).
+				const status = (result.error as { status?: number }).status;
+				if (
+					status === 500 ||
+					result.error.message === "Failed to update user"
+				) {
+					setError(
+						"This phone number is not registered. Contact your admin, or retry with the exact seeded number.",
+					);
+				} else {
+					setError(result.error.message ?? "Verification failed");
+				}
 			} else {
 				window.location.href = "/";
 			}

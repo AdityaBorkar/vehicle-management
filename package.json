@@ -10,12 +10,15 @@
 		"db:studio": "drizzle-kit studio",
 		"dev": "vite dev --host",
 		"dev:seed": "bun scripts/seed.ts",
+		"gen:auth-schema": "bunx auth generate --config ./src/lib/auth/server.ts --output ./src/db-schema/auth.gen.ts",
+		"gen:routes": "tsr generate",
 		"preview": "vite preview",
 		"test": "vitest run"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.9.0",
 		"@better-auth/expo": "^1.7.10",
+		"@clack/prompts": "^1.8.1",
 		"@hookform/resolvers": "^5.9.1",
 		"@orpc/client": "^1.15.7",
 		"@orpc/server": "^1.15.7",
@@ -32,6 +35,7 @@
 		"@tanstack/react-router-ssr-query": "^1.167.3",
 		"@tanstack/react-start": "^1.169.2",
 		"@tanstack/router-plugin": "^1.168.46",
+		"@vitejs/plugin-basic-ssl": "^2.3.0",
 		"better-auth": "^1.7.10",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
