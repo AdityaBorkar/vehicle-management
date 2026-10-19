@@ -8,14 +8,14 @@ import * as reminder from "./procedures/reminder";
 import * as vehicle from "./procedures/vehicle";
 
 export const router = {
-  aadharCard,
-  dieselCard,
-  driver,
-  fastag,
-  gpsDevice,
-  license,
-  reminder,
-  vehicle,
+	aadharCard,
+	dieselCard,
+	driver,
+	fastag,
+	gpsDevice,
+	license,
+	reminder,
+	vehicle,
 };
 
 export type Router = typeof router;

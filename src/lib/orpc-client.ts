@@ -9,22 +9,22 @@ import type { Router } from "#/rpc/router";
 import { router } from "#/rpc/router";
 
 const getORPCClient = createIsomorphicFn()
-  .server(() =>
-    createRouterClient(router, {
-      context: async () => ({
-        headers: getRequestHeaders(),
-      }),
-    }),
-  )
-  .client((): RouterClient<Router> => {
-    const link = new RPCLink({
-      headers: () => ({
-        cookie: document.cookie,
-      }),
-      url: `${window.location.origin}/api/rpc`,
-    });
+	.server(() =>
+		createRouterClient(router, {
+			context: async () => ({
+				headers: getRequestHeaders(),
+			}),
+		}),
+	)
+	.client((): RouterClient<Router> => {
+		const link = new RPCLink({
+			headers: () => ({
+				cookie: document.cookie,
+			}),
+			url: `${window.location.origin}/api/rpc`,
+		});
 
-    return createORPCClient(link);
-  });
+		return createORPCClient(link);
+	});
 
 export const client: RouterClient<Router> = getORPCClient();

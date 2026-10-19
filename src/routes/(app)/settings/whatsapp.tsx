@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/(app)/settings/whatsapp")({
-  component: RouteComponent,
+	component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <div>Hello "/(app)/settings/whatsapp"!</div>;
+	return <div>Hello "/(app)/settings/whatsapp"!</div>;
 }

@@ -1,117 +1,119 @@
 {
-  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": {
-          "level": "on",
-          "options": {
-            "groups": [
-              ":URL:",
-              ":BLANK_LINE:",
-              [":NODE:", ":BUN:", "^@plasmo/(.*)$", "^@plasmohq/(.*)$"],
-              ":BLANK_LINE:",
-              [":PACKAGE:", ":PACKAGE_WITH_PROTOCOL:"],
-              ":BLANK_LINE:",
-              [":ALIAS:"],
-              ":BLANK_LINE:",
-              [":PATH:"]
-            ]
-          }
-        },
-        "useSortedAttributes": "on",
-        "useSortedKeys": "on",
-        "useSortedProperties": "on"
-      }
-    }
-  },
-  "css": {
-    "parser": {
-      "cssModules": true,
-      "tailwindDirectives": true
-    }
-  },
-  "files": {
-    "ignoreUnknown": true,
-    "includes": ["**"]
-  },
-  "formatter": {
-    "attributePosition": "auto",
-    "bracketSameLine": false,
-    "bracketSpacing": true,
-    "enabled": true,
-    "expand": "auto",
-    "formatWithErrors": false,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineEnding": "lf",
-    "lineWidth": 80,
-    "useEditorconfig": true
-  },
-  "html": {
-    "experimentalFullSupportEnabled": false,
-    "formatter": {
-      "selfCloseVoidElements": "always"
-    }
-  },
-  "javascript": {
-    "formatter": {
-      "arrowParentheses": "always",
-      "jsxQuoteStyle": "double",
-      "quoteProperties": "asNeeded",
-      "quoteStyle": "double"
-    }
-  },
-  "linter": {
-    "domains": {
-      "react": "all",
-      "tailwind": "all",
-      "types": "all"
-    },
-    "enabled": true,
-    "rules": {
-      "nursery": {
-        "useSortedClasses": {
-          "fix": "safe",
-          "level": "error",
-          "options": {
-            "attributes": ["classList"],
-            "functions": ["clsx", "cva", "tw", "tw.*"]
-          }
-        }
-      },
-      "recommended": true
-    }
-  },
-  "overrides": [
-    {
-      "includes": [
-        "./src/components/ui/**",
-        "./src/components/data-table-filter/**"
-      ],
-      "linter": {
-        "rules": {
-          "recommended": false,
-          "style": {
-            "useComponentExportOnlyModules": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["src/routes/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "useComponentExportOnlyModules": "off"
-          }
-        }
-      }
-    }
-  ],
-  "vcs": {
-    "clientKind": "git",
-    "enabled": true,
-    "useIgnoreFile": true
-  }
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [
+							":URL:",
+							":BLANK_LINE:",
+							":NODE:",
+							":BUN:",
+							":PACKAGE_WITH_PROTOCOL:",
+							":BLANK_LINE:",
+							":PACKAGE:",
+							":BLANK_LINE:",
+							":ALIAS:",
+							":PATH:"
+						]
+					}
+				},
+				"preset": "all"
+			}
+		}
+	},
+	"css": {
+		"parser": {
+			"cssModules": true,
+			"tailwindDirectives": true
+		}
+	},
+	"files": {
+		"ignoreUnknown": true,
+		"includes": ["**"]
+	},
+	"formatter": {
+		"enabled": true
+	},
+	"html": {
+		"formatter": {
+			"selfCloseVoidElements": "always"
+		}
+	},
+	"linter": {
+		"domains": {
+			"react": "all",
+			"tailwind": "all",
+			"types": "all"
+		},
+		"enabled": true,
+		"rules": {
+			"performance": {
+				"noJsxPropsBind": "off"
+			},
+			"preset": "recommended"
+		}
+	},
+	"overrides": [
+		{
+			"assist": { "actions": { "source": { "useSortedKeys": "off" } } },
+			"includes": ["**/package.json"]
+		},
+		{
+			"includes": ["**/*.test.*"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noNonNullAssertion": "off"
+					},
+					"suspicious": {
+						"noUnnecessaryConditions": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/components/**"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noLabelWithoutControl": "off",
+						"useFocusableInteractive": "off",
+						"useSemanticElements": "off"
+					},
+					"style": {
+						"useComponentExportOnlyModules": "off"
+					},
+					"suspicious": {
+						"noLeakedRender": "off",
+						"noUnnecessaryConditions": "off"
+					}
+				}
+			}
+		},
+		{
+			"assist": {
+				"actions": {
+					"source": {
+						"useSortedProperties": "off"
+					}
+				}
+			},
+			"includes": ["src/routes/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"useComponentExportOnlyModules": "off"
+					}
+				}
+			}
+		}
+	],
+	"vcs": {
+		"clientKind": "git",
+		"enabled": true,
+		"useIgnoreFile": true
+	}
 }

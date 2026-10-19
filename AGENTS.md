@@ -2,78 +2,49 @@
 
 ## Commands
 
-All scripts use `bun --bun` (not Node):
+Runtime is Bun (`bun.lock`, `bunfig.toml` `[run] bun = true`). Run scripts with `bun run <name>`:
 
 ```
-bun --bun run dev          # dev server on :3010 (strictPort)
-bun --bun run build        # production build
-bun --bun run test         # vitest run (no tests exist yet)
-bun --bun run check:lint   # biome check --fix (lint + format)
-bun --bun run check:types  # tsc --noEmit (strict mode)
-bun --bun run db:push      # push schema directly (no migration files)
-bun --bun run db:seed      # interactive admin seeder (prompts for name/email/phone/org)
-bun --bun run db:studio    # drizzle studio UI
+bun run dev           # vite dev --host, port 3000 (strictPort)
+bun run build         # vite build -> .output/
+bun run check:lint    # biome check --fix (lints, formats, organizes imports)
+bun run check:types   # bun check --noEmit (verbatim from package.json, not tsc)
+bun run test          # vitest run (no test files exist yet)
+bun run db:push       # drizzle-kit push, no migration files
+bun run db:studio     # drizzle-kit studio
+bun run dev:seed      # bun scripts/seed.ts (name is dev:seed, not db:seed)
 ```
-
-Verification order: **check:lint → check:types → test**
 
 ## Architecture
 
-- **TanStack Start** (SSR React) + file-based routing via TanStack Router
-- **Nitro** server (`nitro-nightly` aliased as `nitro` in package.json); Sentry packages externalized in vite config
-- **oRPC** API layer — router at `src/rpc/router.ts`, procedures in `src/rpc/procedures/` (`dieselCard`, `fastag`, `gpsDevice`, `license`, `reminder`, `vehicle`), auth middleware at `src/rpc/base.ts` (`authorized` procedure requires session), catch-all route at `src/routes/api/rpc.$.ts` (prefix: `/api/rpc`), client at `src/lib/orpc-client.ts`, TanStack Query utils at `src/lib/orpc-query.ts`
-- Routes: `src/routes/` — add a file, route auto-registers
-- `src/routeTree.gen.ts` — **never edit**, auto-generated
-- DB: PostgreSQL via Drizzle ORM; schema in `src/db-schema/` (barrel export at `index.ts`), instance in `src/lib/db/server.ts`
-- Auth: Better Auth with `tanstackStartCookies`, `phoneNumber`, and `organization` plugins; **signups are disabled** (throws before user creation); server config `src/lib/auth/server.ts`, catch-all route `src/routes/api/auth.$.ts`, client `src/lib/auth/client.ts`
-- PostHog: `integrations/posthog/provider.tsx` — **optional**, disabled when `PUBLIC_POSTHOG_KEY` is unset
-- Forms: custom form system at `integrations/forms/` (Field, FieldArray, ComboboxField, Form components with react-hook-form)
-- Browser automation: `browser-automation/index.ts` — Puppeteer-based scraper (challans, vehicle details); headless=false, needs display
-- Env validation: T3Env at `src/env.ts` — only validates `SERVER_URL` and `PUBLIC_APP_TITLE`; `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` are consumed directly by their packages
+- **TanStack Start** file-based routing in `src/routes/`. `src/routeTree.gen.ts` is gitignored generated code — never edit.
+- **Nitro** via `nitro()` vite plugin; client env vars must use `PUBLIC_` prefix (`envPrefix` in `vite.config.ts`).
+- **oRPC**: router at `src/rpc/router.ts` (namespaces: `aadharCard`, `dieselCard`, `driver`, `fastag`, `gpsDevice`, `license`, `reminder`, `vehicle`). `src/rpc/base.ts` exports `authorized` (session-required middleware). Served at `/api/rpc` by `src/routes/api/rpc.$.ts`. Isomorphic client in `src/lib/orpc-client.ts` (server calls router directly, browser uses `RPCLink`); query helpers in `src/lib/orpc-query.ts`.
+- **Auth** (Better Auth, `src/lib/auth/server.ts`): `drizzleAdapter` + `expo` / `phoneNumber` / `organization` / `tanstackStartCookies` plugins. Signups are hard-disabled (`databaseHooks.user.create.before` throws). OTP `sendOTP` only `console.log`s the code — read the server log in dev. Client is `src/lib/auth/client.ts`; session fetch is the `getSession` serverFn in `src/routes/api/-auth.ts`. `/` is phone-OTP login (redirects to `/dashboard` when logged in); `src/routes/(app)/route.tsx` redirects unauthenticated users to `/`.
+- **DB**: Drizzle + `node-postgres`. Schema barrel is `src/db-schema/index.ts`; instance is `src/lib/db/server.ts` (falls back to `""` if `DATABASE_URL` unset — fails at query time, not import). `drizzle.config.ts` schema is `./src/db-schema/index.ts`.
+- **Env**: `src/env.ts` (T3 env) validates `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `PUBLIC_POSTHOG_*` but is currently only imported by the (commented-out) PostHog provider. `drizzle.config.ts` and `scripts/seed.ts` load dotenv from `.env.local` then `.env` independently.
+- **Styling**: Tailwind v4 + Shadcn (`base-nova`, `zinc`, `tabler` per `components.json`). Real stylesheet is `src/routes/styles.css` (wired via `?url` in `__root.tsx`); `components.json`'s `css: src/styles.css` field is stale and that file does not exist.
+- `browser-automation/index.ts` launches Puppeteer with `headless: false` (needs a display); `scrapeChallanDetails` is a stub returning `null`.
+- PostHog provider is commented out in `src/routes/__root.tsx` — app runs without PostHog keys.
 
-## Route Structure
+## Conventions
 
-- `src/routes/__root.tsx` — AppShell: sidebar nav for authenticated users, unauthenticated children render without shell
-- `src/routes/(app)/route.tsx` — auth guard: **redirects unauthenticated users to `/`**, wraps child routes in centered card layout
-- App routes under `(app)/`: `dashboard.tsx`, `calendar.tsx`, `vehicles/`, `drivers/`, `settings/` (`user.tsx`, `whatsapp.tsx`, `connections.tsx`), `(debug)/workflows.tsx`
-
-## Style Conventions
-
-- **Biome** with **spaces** (indentWidth 2) and **double quotes** — no Prettier, no eslint
-- Biome auto-organizes imports on format; sorted classes enforced (`useSortedClasses`)
-- Shadcn components (`src/components/ui/`) and data-table-filter: linter mostly off (`recommended: false`)
-- Route files: `useComponentExportOnlyModules` disabled
-- Tailwind CSS v4 + Shadcn (**base-nova** style, **zinc** base, **tabler** icons)
-- `src/routes/styles.css` and `src/routeTree.gen.ts` excluded from Biome
-- `verbatimModuleSyntax` — use `import type` for type-only imports or tsc errors
-- `noUnusedLocals` / `noUnusedParameters` — unused vars/params fail typecheck
-- `noPropertyAccessFromIndexSignature` — use bracket notation: `process.env["KEY"]` (not `process.env.KEY`)
-- `noUncheckedIndexedAccess` — array/object bracket access returns `T | undefined`, requires null checks
-- `exactOptionalPropertyTypes` — optional props can't accept `undefined` explicitly without union type
+- Path alias `#/*` → `./src/*` only (`tsconfig.json` + vite `tsconfigPaths`). Root `integrations/` has no alias — do not import it via `#/`.
+- Biome defaults: tabs, double quotes; import organization is automatic. `useComponentExportOnlyModules` is disabled for `src/routes/**` and `src/components/**` (route modules export `Route` plus components).
+- Strict TS: `noUnusedLocals` / `noUnusedParameters` fail the check; `noUncheckedIndexedAccess` (bracket access is `T | undefined`); `exactOptionalPropertyTypes`; `verbatimModuleSyntax` (use `import type`).
+- `src/routes/__root.tsx` `AppShell` renders the sidebar only when a session exists; unauthenticated pages render bare.
 
 ## Setup
 
-1. `docker compose up -d` — postgres:18-alpine on :5432, user/pass/db = `postgres`/`postgres`/`mydb`
-2. Populate `.env.local` (see Environment Variables below)
-3. `bun --bun run db:push`
-4. `bunx --bun @better-auth/cli migrate`
-5. `bun --bun run db:seed` — creates admin user + organization
-
-## Environment Variables (`.env.local`)
-
-- `DATABASE_URL` — e.g. `postgresql://postgres:postgres@localhost:5432/mydb`
-- `BETTER_AUTH_URL` — **must match dev server port**: `http://localhost:3010`
-- `BETTER_AUTH_SECRET` — generate: `bunx --bun @better-auth/cli secret`
-- `PUBLIC_POSTHOG_KEY` — optional, app works without it
-- `PUBLIC_POSTHOG_HOST` — optional, defaults to `https://us.i.posthog.com`
+1. `docker compose up -d` — postgres:18-alpine on :5432, `postgres`/`postgres`/`mydb`, data in `.local/postgres/`
+2. Populate `.env.local` (`DATABASE_URL`, `BETTER_AUTH_URL=http://localhost:3000`, `BETTER_AUTH_SECRET`)
+3. `bun run db:push`
+4. `bunx --bun @better-auth/cli migrate` (no npm script for this)
+5. `bun run dev:seed` — prompts for name/email/phone/org, creates user + org + `owner` membership; exits silently if the email already exists
 
 ## Gotchas
 
-- Dev server port **3010** with `strictPort: true` — fails if port is taken
-- `BETTER_AUTH_URL` must use port 3010 (not 3000) — mismatch breaks auth cookies
-- No `db:generate` / `db:migrate` — only `db:push` (direct schema push, no migration files)
-- Shadcn components installed via `pnpm dlx shadcn@latest add <component>` (pnpm CLI, not bun)
-- Drizzle config loads env via `dotenv` from `.env.local` and `.env`
-- `#/*` resolves to `./src/*`; `#/*` resolves to `./integrations/*` (tsconfig paths)
-- `process.env` keys must use bracket notation (`process.env["KEY"]`) due to `noPropertyAccessFromIndexSignature`
-- Auth signups are disabled — new users must be created via `db:seed` or direct DB insert
+- Dev port is **3000** (`vite.config.ts`, `strictPort: true` — fails if taken). `BETTER_AUTH_URL` must match the dev origin or auth cookies break.
+- `bun run test` passes vacuously — zero test files exist, so a green run proves nothing.
+- No `db:generate` / `db:migrate` workflow — schema changes go via `db:push`.
+- `infrastructure` note in `drizzle.config.ts` (`TODO: REPLACE WITH PULUMI INJECTION`) — env is still file-based, not injected.

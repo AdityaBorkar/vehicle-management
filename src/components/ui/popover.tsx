@@ -4,80 +4,80 @@ import type * as React from "react";
 import { cn } from "#/lib/utils";
 
 function Popover({ ...props }: PopoverPrimitive.Root.Props) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
+	return <PopoverPrimitive.Root data-slot="popover" {...props} />;
 }
 
 function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
-  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
+	return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
 }
 
 function PopoverContent({
-  className,
-  align = "center",
-  side = "bottom",
-  sideOffset = 4,
-  ...props
+	className,
+	align = "center",
+	side = "bottom",
+	sideOffset = 4,
+	...props
 }: PopoverPrimitive.Popup.Props &
-  Pick<PopoverPrimitive.Positioner.Props, "align" | "side" | "sideOffset">) {
-  return (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Positioner
-        align={align}
-        className="isolate z-50"
-        side={side}
-        sideOffset={sideOffset}
-      >
-        <PopoverPrimitive.Popup
-          className={cn(
-            "data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:fade-in-0 data-open:zoom-in-95 data-closed:fade-out-0 data-closed:zoom-out-95 w-72 origin-(--transform-origin) rounded-lg bg-popover p-4 text-popover-foreground shadow-md outline-none ring-1 ring-foreground/10 duration-100 data-closed:animate-out data-open:animate-in",
-            className,
-          )}
-          data-slot="popover-content"
-          {...props}
-        />
-      </PopoverPrimitive.Positioner>
-    </PopoverPrimitive.Portal>
-  );
+	Pick<PopoverPrimitive.Positioner.Props, "align" | "side" | "sideOffset">) {
+	return (
+		<PopoverPrimitive.Portal>
+			<PopoverPrimitive.Positioner
+				align={align}
+				className="isolate z-50"
+				side={side}
+				sideOffset={sideOffset}
+			>
+				<PopoverPrimitive.Popup
+					className={cn(
+						"data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:fade-in-0 data-open:zoom-in-95 data-closed:fade-out-0 data-closed:zoom-out-95 w-72 origin-(--transform-origin) rounded-lg bg-popover p-4 text-popover-foreground shadow-md outline-none ring-1 ring-foreground/10 duration-100 data-closed:animate-out data-open:animate-in",
+						className,
+					)}
+					data-slot="popover-content"
+					{...props}
+				/>
+			</PopoverPrimitive.Positioner>
+		</PopoverPrimitive.Portal>
+	);
 }
 
 function PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn("flex flex-col gap-1 text-sm", className)}
-      data-slot="popover-header"
-      {...props}
-    />
-  );
+	return (
+		<div
+			className={cn("flex flex-col gap-1 text-sm", className)}
+			data-slot="popover-header"
+			{...props}
+		/>
+	);
 }
 
 function PopoverTitle({ className, ...props }: React.ComponentProps<"h2">) {
-  return (
-    <div
-      className={cn("font-medium", className)}
-      data-slot="popover-title"
-      {...props}
-    />
-  );
+	return (
+		<div
+			className={cn("font-medium", className)}
+			data-slot="popover-title"
+			{...props}
+		/>
+	);
 }
 
 function PopoverDescription({
-  className,
-  ...props
+	className,
+	...props
 }: React.ComponentProps<"p">) {
-  return (
-    <p
-      className={cn("text-muted-foreground", className)}
-      data-slot="popover-description"
-      {...props}
-    />
-  );
+	return (
+		<p
+			className={cn("text-muted-foreground", className)}
+			data-slot="popover-description"
+			{...props}
+		/>
+	);
 }
 
 export {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
+	Popover,
+	PopoverContent,
+	PopoverDescription,
+	PopoverHeader,
+	PopoverTitle,
+	PopoverTrigger,
 };

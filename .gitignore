@@ -1,10 +1,11 @@
 node_modules
 .env*
-
 .local
 .output
 .tanstack
 .wrangler
+*.gen.ts
+worker-configuration.d.ts
 
 .DS_Store
 
@@ -12,7 +13,3 @@ node_modules
 .codegraphcontext
 .expect
 .opencode
-.sandcastle
-
-src/routeTree.gen.ts
-worker-configuration.d.ts
