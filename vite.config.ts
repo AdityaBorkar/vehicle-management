@@ -10,16 +10,12 @@ const config = defineConfig({
     outDir: ".output",
   },
   envPrefix: "PUBLIC_",
-  plugins: [
-    devtools(),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
-    tailwindcss(),
-    tanstackStart(),
-    viteReact(),
-  ],
-  resolve: { tsconfigPaths: true },
+  plugins: [devtools(), nitro(), tailwindcss(), tanstackStart(), viteReact()],
+  resolve: {
+    tsconfigPaths: true,
+  },
   server: {
-    port: 3010,
+    port: 3000,
     strictPort: true,
   },
 });

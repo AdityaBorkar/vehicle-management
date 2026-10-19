@@ -10,9 +10,9 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Car, Home, LogOut, Users } from "lucide-react";
 
 // import PostHogProvider from "#/posthog/provider";
-import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner";
-import { authClient } from "@/lib/auth/client";
+import { Button } from "#/components/ui/button";
+import { Toaster } from "#/components/ui/sonner";
+import { authClient } from "#/lib/auth/client";
 
 import appCss from "./styles.css?url";
 

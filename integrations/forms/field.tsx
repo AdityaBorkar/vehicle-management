@@ -1,7 +1,7 @@
 import type { ControllerRenderProps } from "react-hook-form";
 import { Controller, useFormContext as useRhfContext } from "react-hook-form";
 
-import { Label } from "@/components/ui/label";
+import { Label } from "#/components/ui/label";
 
 import { useFormContext } from "./context";
 import { BooleanField } from "./field-components/boolean-field";

@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { gpsDevices } from "@/db-schema";
-import { db } from "@/lib/db/server";
+import { gpsDevices } from "#/db-schema";
+import { db } from "#/lib/db/server";
 
 import { authorized } from "../base";
 

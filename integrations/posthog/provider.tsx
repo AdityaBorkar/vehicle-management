@@ -2,7 +2,7 @@ import { PostHogProvider as BasePostHogProvider } from "@posthog/react";
 import posthog from "posthog-js";
 import { type ReactNode, useEffect } from "react";
 
-import { env } from "@/env";
+import { env } from "#/env";
 
 export default function PostHogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {

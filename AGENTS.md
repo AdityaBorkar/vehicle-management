@@ -74,6 +74,6 @@ Verification order: **check:lint → check:types → test**
 - No `db:generate` / `db:migrate` — only `db:push` (direct schema push, no migration files)
 - Shadcn components installed via `pnpm dlx shadcn@latest add <component>` (pnpm CLI, not bun)
 - Drizzle config loads env via `dotenv` from `.env.local` and `.env`
-- `@/*` resolves to `./src/*`; `#/*` resolves to `./integrations/*` (tsconfig paths)
+- `#/*` resolves to `./src/*`; `#/*` resolves to `./integrations/*` (tsconfig paths)
 - `process.env` keys must use bracket notation (`process.env["KEY"]`) due to `noPropertyAccessFromIndexSignature`
 - Auth signups are disabled — new users must be created via `db:seed` or direct DB insert

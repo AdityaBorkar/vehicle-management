@@ -5,8 +5,8 @@ import { createRouterClient } from "@orpc/server";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 
-import type { Router } from "@/rpc/router";
-import { router } from "@/rpc/router";
+import type { Router } from "#/rpc/router";
+import { router } from "#/rpc/router";
 
 const getORPCClient = createIsomorphicFn()
   .server(() =>

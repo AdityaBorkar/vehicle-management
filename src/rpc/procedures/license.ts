@@ -6,8 +6,8 @@ import {
   drivers,
   drivingLicenses,
   reminders,
-} from "@/db-schema";
-import { db } from "@/lib/db/server";
+} from "#/db-schema";
+import { db } from "#/lib/db/server";
 
 import { authorized } from "../base";
 

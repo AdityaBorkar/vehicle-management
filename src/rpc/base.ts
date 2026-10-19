@@ -1,6 +1,6 @@
 import { ORPCError, os } from "@orpc/server";
 
-import { auth } from "@/lib/auth/server";
+import { auth } from "#/lib/auth/server";
 
 export const base = os.$context<{ headers: Headers }>();
 

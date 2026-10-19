@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { vehicles } from "@/db-schema";
-import { db } from "@/lib/db/server";
+import { vehicles } from "#/db-schema";
+import { db } from "#/lib/db/server";
 
 import { authorized } from "../base";
 

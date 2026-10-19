@@ -5,8 +5,8 @@ import { APIError } from "better-auth/api";
 import { organization, phoneNumber } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
-import * as schema from "@/db-schema";
-import { db } from "@/lib/db/server";
+import * as schema from "#/db-schema";
+import { db } from "#/lib/db/server";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {

@@ -15,8 +15,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "#/*": ["./integrations/*"]
+      "#/*": ["./src/*"]
     },
     "skipLibCheck": true,
     "strict": true,

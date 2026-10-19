@@ -1,18 +1,82 @@
 {
   "file_scan_exclusions": [
-    "**/.codegraphcontext",
-    "**/.entire",
     "**/.git",
-    "**/.tanstack",
+    "**/.local",
+    "**/.output",
     "**/.wrangler",
-    "**/node_modules"
+    "**/.tanstack",
+    "**/.coverage",
+    "**/node_modules",
+    ".codegraphcontext",
+    "tsconfig.tsbuildinfo"
   ],
   "format_on_save": "on",
-  "formatter": {
-    "external": {
-      "arguments": ["format", "--stdin-file-path", "{buffer_path}"],
-      "command": "biome"
+  "formatter": [
+    { "code_action": "source.fixAll.biome" },
+    { "code_action": "source.organizeImports.biome" },
+    { "code_action": "source.action.useSortedAttributes.biome" },
+    { "code_action": "source.action.useSortedKeys.biome" },
+    { "code_action": "source.action.useSortedPackageJson.biome" },
+    { "code_action": "source.action.useSortedProperties.biome" },
+    { "code_action": "source.action.useSortedInterfaceMembers.biome" },
+    { "code_action": "source.action.useSortedEnumMembers.biome" },
+    { "code_action": "source.action.noDuplicateClasses.biome" },
+    { "language_server": { "name": "biome" } }
+  ],
+  "language_servers": ["!oxfmt", "..."],
+  "languages": {
+    "CSS": {
+      "formatter": "language_server",
+      "language_servers": [
+        "!vscode-css-language-server",
+        "!oxlint",
+        "!oxfmt",
+        "..."
+      ]
+    },
+    "JavaScript": {
+      "formatter": "language_server",
+      "language_servers": [
+        "!typescript-language-server",
+        "!vtsls",
+        "!eslint",
+        "!oxlint",
+        "!oxfmt",
+        "biome",
+        "..."
+      ]
+    },
+    "TSX": {
+      "formatter": "language_server",
+      "language_servers": [
+        "!typescript-language-server",
+        "!vtsls",
+        "!eslint",
+        "!oxlint",
+        "!oxfmt",
+        "biome",
+        "..."
+      ]
+    },
+    "TypeScript": {
+      "formatter": "language_server",
+      "language_servers": [
+        "!typescript-language-server",
+        "!vtsls",
+        "!eslint",
+        "!oxlint",
+        "!oxfmt",
+        "biome",
+        "..."
+      ]
     }
   },
-  "language_servers": ["!eslint", "!typescript-language-server", "..."]
+  "lsp": {
+    "biome": {
+      "binary": {
+        "arguments": ["lsp-proxy"],
+        "path": "node_modules/@biomejs/biome/bin/biome"
+      }
+    }
+  }
 }

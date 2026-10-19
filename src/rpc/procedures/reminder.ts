@@ -1,8 +1,8 @@
 import { and, eq, lte } from "drizzle-orm";
 import { z } from "zod";
 
-import { reminders } from "@/db-schema";
-import { db } from "@/lib/db/server";
+import { reminders } from "#/db-schema";
+import { db } from "#/lib/db/server";
 
 import { authorized } from "../base";
 

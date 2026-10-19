@@ -2,8 +2,8 @@ import { IconPlus, IconTrash } from "@tabler/icons-react";
 import type { Control } from "react-hook-form";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 
 import type { FieldMap, FieldMeta } from "../use-form";
 
