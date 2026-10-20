@@ -17,7 +17,6 @@ import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
 import { isValidPhoneNumber, normalizePhoneNumber } from "#/lib/utils";
 import { getSession } from "./api/-auth";
-import { getDevOtpCode } from "./api/-dev";
 
 export const Route = createFileRoute("/")({
 	beforeLoad: async () => {

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { aadharCards, drivers } from "#/db-schema";
 import { db } from "#/lib/db";
-import { authorized } from "../base";
+import { protectedProcedure } from "../base";
 
 const aadharInputSchema = z.object({
 	aadharNumber: z.string().min(1),
@@ -21,7 +21,7 @@ const aadharUpdateSchema = z.object({
 	id: z.number().int(),
 });
 
-export const getByDriverId = authorized
+export const getByDriverId = protectedProcedure
 	.input(z.object({ driverId: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [driver] = await db
@@ -44,7 +44,7 @@ export const getByDriverId = authorized
 		return card ?? null;
 	});
 
-export const create = authorized
+export const create = protectedProcedure
 	.input(aadharInputSchema)
 	.handler(async ({ context, input }) => {
 		const [driver] = await db
@@ -71,7 +71,7 @@ export const create = authorized
 		return card;
 	});
 
-export const update = authorized
+export const update = protectedProcedure
 	.input(aadharUpdateSchema)
 	.handler(async ({ context, input }) => {
 		const { id, ...data } = input;
@@ -101,7 +101,7 @@ export const update = authorized
 		return updated ?? null;
 	});
 
-export const remove = authorized
+export const remove = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [card] = await db

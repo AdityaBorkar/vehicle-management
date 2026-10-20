@@ -1,7 +1,5 @@
 # TODO
 
-Dark Mode
-
 Secure DB and infrastructure? Cloudflare Infra
 
 Re-fetch, refresh, and store the refresh status in the database
@@ -9,10 +7,6 @@ Re-fetch, refresh, and store the refresh status in the database
 Secure the logic behind it using workflow runs poweered by CLI for now.
 
 ---
-
-CASHFREE
-
-API_EXPRESS
 
 BROWSER
 

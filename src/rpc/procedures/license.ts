@@ -8,7 +8,7 @@ import {
 	reminders,
 } from "#/db-schema";
 import { db } from "#/lib/db";
-import { authorized } from "../base";
+import { protectedProcedure } from "../base";
 
 const licenseInputSchema = z.object({
 	address: z.string().optional(),
@@ -106,7 +106,7 @@ async function dismissReminderForClass(
 		);
 }
 
-export const list = authorized
+export const list = protectedProcedure
 	.input(z.object({ driverId: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		await verifyDriverOwnership(input.driverId, context.user.id);
@@ -128,7 +128,7 @@ export const list = authorized
 		return result;
 	});
 
-export const getById = authorized
+export const getById = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [license] = await db
@@ -158,7 +158,7 @@ export const getById = authorized
 		return { ...license, vehicleClasses: classes };
 	});
 
-export const create = authorized
+export const create = protectedProcedure
 	.input(licenseInputSchema)
 	.handler(async ({ context, input }) => {
 		const { vehicleClasses: classesInput, ...licenseData } = input;
@@ -200,7 +200,7 @@ export const create = authorized
 		return { ...license, vehicleClasses: classes };
 	});
 
-export const update = authorized
+export const update = protectedProcedure
 	.input(licenseUpdateSchema)
 	.handler(async ({ context, input }) => {
 		const { id, ...data } = input;
@@ -233,7 +233,7 @@ export const update = authorized
 		return updated ?? null;
 	});
 
-export const remove = authorized
+export const remove = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [license] = await db
@@ -263,7 +263,7 @@ export const remove = authorized
 		return deleted ?? null;
 	});
 
-export const addClass = authorized
+export const addClass = protectedProcedure
 	.input(
 		z.object({
 			expiryDate: z.coerce.date(),
@@ -311,7 +311,7 @@ export const addClass = authorized
 		return vc;
 	});
 
-export const updateClass = authorized
+export const updateClass = protectedProcedure
 	.input(
 		z.object({
 			expiryDate: z.coerce.date().optional(),
@@ -388,7 +388,7 @@ export const updateClass = authorized
 		return updated ?? null;
 	});
 
-export const removeClass = authorized
+export const removeClass = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [vc] = await db

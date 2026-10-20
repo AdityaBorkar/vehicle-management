@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { reminders } from "#/db-schema";
 import { db } from "#/lib/db";
-import { authorized } from "../base";
+import { protectedProcedure } from "../base";
 
 const reminderInputSchema = z.object({
 	driverId: z.number().int().optional(),
@@ -22,7 +22,7 @@ const reminderInputSchema = z.object({
 	vehicleId: z.number().int().optional(),
 });
 
-export const list = authorized.handler(async ({ context }) => {
+export const list = protectedProcedure.handler(async ({ context }) => {
 	return db
 		.select()
 		.from(reminders)
@@ -30,7 +30,7 @@ export const list = authorized.handler(async ({ context }) => {
 		.orderBy(reminders.dueDate);
 });
 
-export const getUpcoming = authorized
+export const getUpcoming = protectedProcedure
 	.input(z.object({ days: z.number().int().default(30) }).optional())
 	.handler(async ({ context, input }) => {
 		const futureDate = new Date();
@@ -48,7 +48,7 @@ export const getUpcoming = authorized
 			.orderBy(reminders.dueDate);
 	});
 
-export const create = authorized
+export const create = protectedProcedure
 	.input(reminderInputSchema)
 	.handler(async ({ context, input }) => {
 		const [reminder] = await db
@@ -61,7 +61,7 @@ export const create = authorized
 		return reminder;
 	});
 
-export const update = authorized
+export const update = protectedProcedure
 	.input(
 		z.object({
 			dueDate: z.coerce.date().optional(),
@@ -81,7 +81,7 @@ export const update = authorized
 		return reminder ?? null;
 	});
 
-export const dismiss = authorized
+export const dismiss = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [reminder] = await db
@@ -94,7 +94,7 @@ export const dismiss = authorized
 		return reminder ?? null;
 	});
 
-export const remove = authorized
+export const remove = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [reminder] = await db

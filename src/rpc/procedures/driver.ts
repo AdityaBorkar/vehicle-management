@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { aadharCards, drivers, drivingLicenses } from "#/db-schema";
 import { db } from "#/lib/db";
-import { authorized } from "../base";
+import { protectedProcedure } from "../base";
 
 const driverInputSchema = z.object({
 	name: z.string().min(1),
@@ -16,7 +16,7 @@ const driverUpdateSchema = z.object({
 	phoneNumber: z.string().optional().nullable(),
 });
 
-export const list = authorized.handler(async ({ context }) => {
+export const list = protectedProcedure.handler(async ({ context }) => {
 	return db
 		.select()
 		.from(drivers)
@@ -24,7 +24,7 @@ export const list = authorized.handler(async ({ context }) => {
 		.orderBy(drivers.createdAt);
 });
 
-export const getById = authorized
+export const getById = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [driver] = await db
@@ -53,7 +53,7 @@ export const getById = authorized
 		};
 	});
 
-export const create = authorized
+export const create = protectedProcedure
 	.input(driverInputSchema)
 	.handler(async ({ context, input }) => {
 		const [driver] = await db
@@ -63,7 +63,7 @@ export const create = authorized
 		return driver;
 	});
 
-export const update = authorized
+export const update = protectedProcedure
 	.input(driverUpdateSchema)
 	.handler(async ({ context, input }) => {
 		const { id, ...data } = input;
@@ -75,7 +75,7 @@ export const update = authorized
 		return driver ?? null;
 	});
 
-export const remove = authorized
+export const remove = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [driver] = await db

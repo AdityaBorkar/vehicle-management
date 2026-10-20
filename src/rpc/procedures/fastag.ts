@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { fastags } from "#/db-schema";
 import { db } from "#/lib/db";
-import { authorized } from "../base";
+import { protectedProcedure } from "../base";
 import { verifyVehicleOwnership } from "./vehicle-ownership";
 
 const fastagInputSchema = z.object({
@@ -14,7 +14,7 @@ const fastagInputSchema = z.object({
 	vehicleId: z.number().int(),
 });
 
-export const list = authorized
+export const list = protectedProcedure
 	.input(z.object({ vehicleId: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		await verifyVehicleOwnership(input.vehicleId, context.user.id);
@@ -24,7 +24,7 @@ export const list = authorized
 			.where(eq(fastags.vehicleId, input.vehicleId));
 	});
 
-export const create = authorized
+export const create = protectedProcedure
 	.input(fastagInputSchema)
 	.handler(async ({ context, input }) => {
 		await verifyVehicleOwnership(input.vehicleId, context.user.id);
@@ -32,7 +32,7 @@ export const create = authorized
 		return fastag;
 	});
 
-export const update = authorized
+export const update = protectedProcedure
 	.input(
 		z.object({
 			balance: z.string().optional(),
@@ -58,7 +58,7 @@ export const update = authorized
 		return fastag ?? null;
 	});
 
-export const remove = authorized
+export const remove = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [existing] = await db

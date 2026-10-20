@@ -10,7 +10,7 @@ import {
 	vehicles,
 } from "#/db-schema";
 import { db } from "#/lib/db";
-import { authorized } from "../base";
+import { protectedProcedure } from "../base";
 import { verifyVehicleOwnership } from "./vehicle-ownership";
 
 const documentKinds = [
@@ -81,7 +81,7 @@ async function verifyDriverOwnership(driverId: number, userId: string) {
 	return driver;
 }
 
-export const list = authorized.handler(async ({ context }) => {
+export const list = protectedProcedure.handler(async ({ context }) => {
 	const items: DocumentListItem[] = [];
 
 	const stored = await db
@@ -272,7 +272,7 @@ export const list = authorized.handler(async ({ context }) => {
 	return items;
 });
 
-export const create = authorized
+export const create = protectedProcedure
 	.input(documentInputSchema)
 	.handler(async ({ context, input }) => {
 		let vehicleRegistration = input.vehicleRegistration;
@@ -339,7 +339,7 @@ export const create = authorized
  * and a new `active` row carries the fresh issue/expiry dates.
  * Old rows are never deleted or modified again.
  */
-export const renew = authorized
+export const renew = protectedProcedure
 	.input(
 		z.object({
 			documentNumber: z.string().optional(),
@@ -391,7 +391,7 @@ export const renew = authorized
  * Archive hides a document from the current view but keeps the row —
  * there is deliberately no delete procedure for documents.
  */
-export const archive = authorized
+export const archive = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [doc] = await db

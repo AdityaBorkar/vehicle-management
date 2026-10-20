@@ -5,7 +5,7 @@ import { z } from "zod";
 import { externalApiCalls, vehicles } from "#/db-schema";
 import { db } from "#/lib/db";
 import { formatVin } from "#/lib/utils";
-import { authorized } from "../base";
+import { protectedProcedure } from "../base";
 
 const vehicleInputSchema = z.object({
 	color: z.string().optional(),
@@ -36,7 +36,7 @@ const vehicleUpdateSchema = z.object({
 	year: z.number().int().min(1900).max(2100).optional(),
 });
 
-export const list = authorized.handler(async ({ context }) => {
+export const list = protectedProcedure.handler(async ({ context }) => {
 	return db
 		.select()
 		.from(vehicles)
@@ -44,7 +44,7 @@ export const list = authorized.handler(async ({ context }) => {
 		.orderBy(vehicles.createdAt);
 });
 
-export const getById = authorized
+export const getById = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [vehicle] = await db
@@ -56,7 +56,7 @@ export const getById = authorized
 		return vehicle ?? null;
 	});
 
-export const create = authorized
+export const create = protectedProcedure
 	.input(vehicleInputSchema)
 	.handler(async ({ context, input }) => {
 		const [vehicle] = await db
@@ -69,7 +69,7 @@ export const create = authorized
 		return vehicle;
 	});
 
-export const update = authorized
+export const update = protectedProcedure
 	.input(vehicleUpdateSchema)
 	.handler(async ({ context, input }) => {
 		const { id, ...data } = input;
@@ -135,7 +135,7 @@ export const update = authorized
 		return vehicle ?? null;
 	});
 
-export const remove = authorized
+export const remove = protectedProcedure
 	.input(z.object({ id: z.number().int() }))
 	.handler(async ({ context, input }) => {
 		const [vehicle] = await db
@@ -231,21 +231,15 @@ async function fetchAndStoreRc(normalized: string) {
 	const payload = { rc_number: normalized };
 	try {
 		const { body, httpStatus } = await verifyRc(normalized);
-		const [row] = await db
-			.insert(externalApiCalls)
-			.values({
-				endpoint: "/v1/rc/verify",
-				provider: "apiexpress",
-				request: payload,
-				response: body,
-				status: "success",
-				statusCode: httpStatus,
-				vin: normalized,
-			})
-			.returning({ id: externalApiCalls.id });
-		console.log(
-			`[vehicle.lookup] live APIExpress success vin=${normalized} external_api_calls.id=${row?.id} HTTP ${httpStatus}`,
-		);
+		await db.insert(externalApiCalls).values({
+			endpoint: "/v1/rc/verify",
+			provider: "apiexpress",
+			request: payload,
+			response: body,
+			status: "success",
+			statusCode: httpStatus,
+			vin: normalized,
+		});
 		const fields = mapRcResponseToLookup(body);
 		return {
 			color: fields.color,
@@ -266,9 +260,6 @@ async function fetchAndStoreRc(normalized: string) {
 		if (!isApiExpressError(err)) throw err;
 		// No key configured — autofill cannot run without APIExpress.
 		if (err.code === "MISSING_API_KEY") {
-			console.log(
-				`[vehicle.lookup] APIExpress key missing, lookup aborted vin=${normalized}`,
-			);
 			throw new ORPCError("INTERNAL_SERVER_ERROR", {
 				message:
 					"Autofill needs APIExpress: APIEXPRESS_API_KEY is not configured on the server.",
@@ -280,24 +271,16 @@ async function fetchAndStoreRc(normalized: string) {
 			code: err.code,
 			message: err.message,
 		};
-		const reqId =
-			typeof errorBody.request_id === "string" ? errorBody.request_id : null;
 		try {
-			const [row] = await db
-				.insert(externalApiCalls)
-				.values({
-					endpoint: "/v1/rc/verify",
-					provider: "apiexpress",
-					request: payload,
-					response: errorBody,
-					status: "error",
-					statusCode: err.httpStatus,
-					vin: normalized,
-				})
-				.returning({ id: externalApiCalls.id });
-			console.log(
-				`[vehicle.lookup] live APIExpress error vin=${normalized} external_api_calls.id=${row?.id} code=${err.code} HTTP ${err.httpStatus}${reqId ? ` req_id=${reqId}` : ""}`,
-			);
+			await db.insert(externalApiCalls).values({
+				endpoint: "/v1/rc/verify",
+				provider: "apiexpress",
+				request: payload,
+				response: errorBody,
+				status: "error",
+				statusCode: err.httpStatus,
+				vin: normalized,
+			});
 		} catch (dbErr) {
 			console.error("Failed to log external_api_calls row:", dbErr);
 		}
@@ -324,7 +307,7 @@ async function fetchAndStoreRc(normalized: string) {
  *   3. a live APIExpress call (stored with request/response/VIN).
  * Nothing is saved to `vehicles` — the caller still goes through `create`.
  */
-export const lookup = authorized
+export const lookup = protectedProcedure
 	.input(lookupInputSchema)
 	.handler(async ({ context, input }) => {
 		// 1. Standard format.
@@ -356,9 +339,6 @@ export const lookup = authorized
 			}
 		});
 		if (existing) {
-			console.log(
-				`[vehicle.lookup] served from vehicles table vin=${normalized} vehicleId=${existing.id}`,
-			);
 			return {
 				color: existing.color,
 				fetchedAt: new Date().toISOString(),
@@ -389,9 +369,6 @@ export const lookup = authorized
 			.orderBy(desc(externalApiCalls.id))
 			.limit(1);
 		if (cached?.response) {
-			console.log(
-				`[vehicle.lookup] served from external_api_calls cache vin=${normalized} external_api_calls.id=${cached.id}`,
-			);
 			const { mapRcResponseToLookup } = await import("#/lib/apiexpress/server");
 			const fields = mapRcResponseToLookup(cached.response);
 			return {
