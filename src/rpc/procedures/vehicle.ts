@@ -4,10 +4,11 @@ import { z } from "zod";
 
 import { externalApiCalls, vehicles } from "#/db-schema";
 import {
-	isApiExpressError,
+	CASHFREE_ENDPOINT_PATH,
+	isCashfreeError,
 	mapRcResponseToLookup,
 	verifyRc,
-} from "#/lib/apiexpress/server";
+} from "#/lib/cashfree/server";
 import { db } from "#/lib/db";
 import { formatVin } from "#/lib/utils";
 import { protectedProcedure } from "../base";
@@ -65,14 +66,43 @@ export const getById = protectedProcedure
 export const create = protectedProcedure
 	.input(vehicleInputSchema)
 	.handler(async ({ context, input }) => {
-		const [vehicle] = await db
-			.insert(vehicles)
-			.values({
-				...input,
-				userId: context.user.id,
-			})
-			.returning();
-		return vehicle;
+		let registrationNumber: string;
+		try {
+			registrationNumber = formatVin(input.registrationNumber);
+		} catch (err) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: err instanceof Error ? err.message : "Invalid VIN.",
+			});
+		}
+		if (!/^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4}$/.test(registrationNumber)) {
+			throw new ORPCError("BAD_REQUEST", {
+				message:
+					'Invalid registration number. Expected format like "MH01CR7464".',
+			});
+		}
+		try {
+			const [vehicle] = await db
+				.insert(vehicles)
+				.values({
+					...input,
+					registrationNumber,
+					userId: context.user.id,
+				})
+				.returning();
+			return vehicle;
+		} catch (err) {
+			const code =
+				typeof err === "object" && err !== null && "code" in err
+					? String((err as { code: unknown }).code)
+					: null;
+			const message = err instanceof Error ? err.message : "";
+			if (code === "23505" || /duplicate|unique/i.test(message)) {
+				throw new ORPCError("CONFLICT", {
+					message: `Vehicle "${registrationNumber}" already exists.`,
+				});
+			}
+			throw err;
+		}
 	});
 
 export const update = protectedProcedure
@@ -224,21 +254,24 @@ function orpcCodeForProviderStatus(httpStatus: number): ProviderErrorCode {
 }
 
 /**
- * Live APIExpress RC lookup with caching.
+ * Live Cashfree RC lookup with caching.
  *
- * APIExpress is the mandatory provider for Add-vehicle autofill.
+ * Cashfree is the mandatory provider for Add-vehicle autofill.
  * Every call is stored in `external_api_calls` with the VIN, request
  * payload and full response. Returns the mapped lookup on success and
- * throws for anything else (missing key, provider rejection, provider
- * outage) — there is no browser-automation fallback on this path.
+ * throws for anything else (missing credentials, provider rejection,
+ * provider outage) — there is no browser-automation fallback on this path.
+ *
+ * NOTE: the APIExpress client in `#/lib/apiexpress/` is kept intact but
+ * intentionally unused for now.
  */
 async function fetchAndStoreRc(normalized: string) {
-	const payload = { rc_number: normalized };
+	const payload = { vehicle_number: normalized };
 	try {
 		const { body, httpStatus } = await verifyRc(normalized);
 		await db.insert(externalApiCalls).values({
-			endpoint: "/v1/rc/verify",
-			provider: "apiexpress",
+			endpoint: CASHFREE_ENDPOINT_PATH,
+			provider: "cashfree",
 			request: payload,
 			response: body,
 			status: "success",
@@ -257,17 +290,17 @@ async function fetchAndStoreRc(normalized: string) {
 			pollutionValidTill: fields.pollutionValidTill,
 			registrationDate: fields.registrationDate,
 			registrationNumber: normalized,
-			source: "apiexpress" as const,
+			source: "cashfree" as const,
 			vin: fields.vin,
 			year: fields.year,
 		};
 	} catch (err) {
-		if (!isApiExpressError(err)) throw err;
-		// No key configured — autofill cannot run without APIExpress.
-		if (err.code === "MISSING_API_KEY") {
+		if (!isCashfreeError(err)) throw err;
+		// No credentials configured — autofill cannot run without Cashfree.
+		if (err.code === "MISSING_CREDENTIALS" || err.code === "INVALID_ENV") {
 			throw new ORPCError("INTERNAL_SERVER_ERROR", {
 				message:
-					"Autofill needs APIExpress: APIEXPRESS_API_KEY is not configured on the server.",
+					"Autofill needs Cashfree: CASHFREE_CLIENT_ID / CASHFREE_CLIENT_SECRET are not configured on the server.",
 			});
 		}
 		// Store the full provider error body — it carries request_id and
@@ -278,8 +311,8 @@ async function fetchAndStoreRc(normalized: string) {
 		};
 		try {
 			await db.insert(externalApiCalls).values({
-				endpoint: "/v1/rc/verify",
-				provider: "apiexpress",
+				endpoint: CASHFREE_ENDPOINT_PATH,
+				provider: "cashfree",
 				request: payload,
 				response: errorBody,
 				status: "error",
@@ -303,13 +336,14 @@ async function fetchAndStoreRc(normalized: string) {
 }
 
 /**
- * Autofill source for the Add Vehicle UI. APIExpress is mandatory here.
+ * Autofill source for the Add Vehicle UI. Cashfree is mandatory here.
  *
  * Takes only the vehicle number, formats it to the standard form, then
  * resolves details in order:
  *   1. the user's own `vehicles` table,
- *   2. the shared `external_api_calls` cache,
- *   3. a live APIExpress call (stored with request/response/VIN).
+ *   2. the shared `external_api_calls` cache (either provider — the
+ *      Cashfree mapper accepts both response shapes),
+ *   3. a live Cashfree call (stored with request/response/VIN).
  * Nothing is saved to `vehicles` — the caller still goes through `create`.
  */
 export const lookup = protectedProcedure
@@ -361,7 +395,7 @@ export const lookup = protectedProcedure
 			};
 		}
 
-		// 3. Cached APIExpress response?
+		// 3. Cached RC response (either provider — mapper handles both)?
 		const [cached] = await db
 			.select()
 			.from(externalApiCalls)
@@ -392,7 +426,7 @@ export const lookup = protectedProcedure
 			};
 		}
 
-		// 4. Live APIExpress call (stored with request/response/VIN).
+		// 4. Live Cashfree call (stored with request/response/VIN).
 		// This is the mandatory provider for Add-vehicle autofill.
 		return fetchAndStoreRc(normalized);
 	});

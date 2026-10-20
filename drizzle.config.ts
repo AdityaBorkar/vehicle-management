@@ -1,7 +1,6 @@
 import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-// TODO: REPLACE WITH PULUMI INJECTION
 config({ path: [".env.local", ".env"] });
 
 export default defineConfig({

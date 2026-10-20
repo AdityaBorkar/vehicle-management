@@ -2,14 +2,15 @@
  * Server-only Cashfree entrypoint (barrel).
  *
  * Never import this module from client components — it reads the
- * `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` secrets from the server
+ * `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` secrets (plus the
+ * optional `CASHFREE_PUBLIC_KEY` for 2FA signing) from the server
  * environment. The implementation lives in `config.ts` / `errors.ts` /
- * `client.ts` / `mapping.ts`; shared retry, error and field-parsing
- * primitives live in `#/lib/rc/`.
+ * `client.ts` / `mapping.ts` / `signature.ts`; shared retry, error and
+ * field-parsing primitives live in `#/lib/rc/`.
  */
 
 export type { RcLookupFields, RcVerifySuccess } from "#/lib/rc/types";
-export { verifyRc } from "./client";
+export { cashfreeProviderError, verifyRc } from "./client";
 export type { CashfreeEnv } from "./config";
 export {
 	buildVerificationId,
@@ -20,9 +21,11 @@ export {
 	getCashfreeBaseUrl,
 	getCashfreeCredentials,
 	getCashfreeEndpoint,
+	getCashfreePublicKey,
 } from "./config";
 export { CashfreeError, isCashfreeError } from "./errors";
 export {
 	mapCashfreeResponseToLookup,
 	mapRcResponseToLookup,
 } from "./mapping";
+export { buildSignatureData, generateCfSignature } from "./signature";

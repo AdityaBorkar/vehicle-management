@@ -64,6 +64,31 @@ export function getCashfreeCredentials(): {
 }
 
 /**
+ * Cashfree-issued RSA public key for 2FA request signing, if configured.
+ *
+ * When "Public Key" is selected as the 2FA method in the Secure ID
+ * dashboard, every API call must carry an `x-cf-signature` header
+ * (see `signature.ts`). Returns null when unset — the caller then skips
+ * the header (IP-whitelist 2FA mode).
+ *
+ * Accepts the PEM with real newlines, `\n` escapes (single-line dotenv
+ * values), or the bare base64 body — all are normalized to PEM armor.
+ */
+export function getCashfreePublicKey(): string | null {
+	const raw = process.env.CASHFREE_PUBLIC_KEY?.trim();
+	if (!raw) return null;
+	// Single-line dotenv values often carry literal backslash-n escapes.
+	const withNewlines = raw.replace(/\\n/g, "\n");
+	const body = withNewlines
+		.replace(/-----BEGIN [A-Z ]*-----/g, "")
+		.replace(/-----END [A-Z ]*-----/g, "")
+		.replace(/\s+/g, "");
+	if (!body) return null;
+	const lines = body.match(/.{1,64}/g) ?? [body];
+	return `-----BEGIN PUBLIC KEY-----\n${lines.join("\n")}\n-----END PUBLIC KEY-----`;
+}
+
+/**
  * Build a unique `verification_id` for Cashfree (max 50 chars, only
  * alphanum plus `.` `-` `_`; 409 on reuse).
  */

@@ -1,16 +1,10 @@
 # TODO
 
-Secure DB and infrastructure? Cloudflare Infra
-
 Re-fetch, refresh, and store the refresh status in the database
 
 Secure the logic behind it using workflow runs poweered by CLI for now.
 
----
-
 BROWSER
-
----
 
 Get Fitness Certificate Success APPL. NUM.
 
@@ -84,18 +78,32 @@ VIEW UPLOADED DOCUMENTS??
 - Manage appointments for Permit and Fitness
 - Refresh FASTag History
 
-- WhatsApp OTP Authentication
-- WhatsApp OTP Auth & Groups & Templates
-- Cron Jobs
-- Workflow Management
+- FEAT: ADD ADDRESS TO GOOGLE MAPS DETECTION ALGORITHM
+
+## Triage Features
 
 - Book HSRP Number Plate
-- FEAT: ADD ADDRESS TO GOOGLE MAPS DETECTION ALGORITHM
 - Generate Work Order or Sale Agreement
+
+---
 
 - Battle Tested Integrations
   - Tables
   - Forms
+  - WhatsApp OTP Authentication
+  - WhatsApp OTP Auth & Groups & Templates
+  - Cron Jobs
+  - Workflow Management
+- Improve Codebase Architecture
+- Thermo Nuclear Codebase Review
+- Security Audit
+- Count: biome-ignore ts-ignore ts-nocheck ts-expect-error
+
+- Infra
+  - .env.local
+  - drizzle.config.ts
+  - Cockroach DB + Hyperdrive
+  - Cloudflare Workers + OCI (Small Instance)
 
 ---
 
@@ -104,16 +112,3 @@ Mobile App to scrape SMS and report to server and keep them in Sync
 - Detect FASTag and Banking Transactions
 - If OTP, Skip and not report
 - If SPAM, alert to unsubscribe
-
----
-
-- Improve Codebase Architecture
-- Thermo Nuclear Codebase Review
-- Security Audit
-
-- Count: biome-ignore ts-ignore ts-nocheck ts-expect-error
-
----
-
-Cockroach DB + Hyperdrive
-Cloudflare Workers + OCI (Small Instance)
