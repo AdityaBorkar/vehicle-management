@@ -41,12 +41,8 @@ export class RcProviderError extends Error {
 export function isRcProviderError(err: unknown): err is RcProviderError {
 	return (
 		err instanceof Error &&
-		(err as { name?: unknown }).name !== undefined &&
-		typeof (err as { name?: unknown }).name === "string" &&
-		["RcProviderError", "ApiExpressError", "CashfreeError"].includes(
-			(err as { name: string }).name,
-		) &&
 		typeof (err as { code?: unknown }).code === "string" &&
-		typeof (err as { httpStatus?: unknown }).httpStatus === "number"
+		typeof (err as { httpStatus?: unknown }).httpStatus === "number" &&
+		typeof (err as { provider?: unknown }).provider === "string"
 	);
 }

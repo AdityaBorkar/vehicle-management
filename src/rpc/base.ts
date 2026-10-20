@@ -31,7 +31,7 @@ export const authMiddleware = base.middleware(async ({ context, next }) => {
 		headers: context.headers,
 	});
 
-	if (!session?.session || !session?.user) {
+	if (!session?.user) {
 		throw new ORPCError("UNAUTHORIZED", {
 			message: "You must be logged in to perform this action",
 		});
@@ -48,6 +48,3 @@ export const authMiddleware = base.middleware(async ({ context, next }) => {
 export const publicProcedure = base.use(loggingMiddleware);
 
 export const protectedProcedure = publicProcedure.use(authMiddleware);
-
-/** @deprecated Use `protectedProcedure` instead. Kept for backwards compat. */
-export const authorized = protectedProcedure;

@@ -11,19 +11,20 @@ import type { FieldMeta } from "../use-form";
 
 type EnumFieldProps = {
 	field: ControllerRenderProps;
-	meta: FieldMeta | undefined;
-	disabled: boolean | undefined;
+	meta?: FieldMeta | undefined;
+	disabled?: boolean | undefined;
 	entries: Record<string, string> | undefined;
 };
 
 function EnumField({ field, meta, disabled, entries }: EnumFieldProps) {
-	const options = entries ? Object.entries(entries) : [];
+	const options = Object.entries(entries ?? {});
+	if (options.length === 0) return null;
 
 	return (
 		<Select
 			disabled={disabled}
 			onValueChange={field.onChange}
-			value={field.value}
+			value={field.value ?? ""}
 		>
 			<SelectTrigger className="w-full">
 				<SelectValue placeholder={meta?.placeholder ?? "Select..."} />

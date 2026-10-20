@@ -19,7 +19,13 @@ export type CashfreeEnv = "production" | "sandbox";
 
 function resolveEnv(): CashfreeEnv {
 	const raw = process.env.CASHFREE_ENV?.trim().toLowerCase();
-	return raw === "production" || raw === "prod" ? "production" : "sandbox";
+	if (!raw || raw === "sandbox") return "sandbox";
+	if (raw === "production" || raw === "prod") return "production";
+	throw new CashfreeError(
+		`Unknown CASHFREE_ENV "${raw}". Expected "sandbox" or "production".`,
+		"INVALID_ENV",
+		500,
+	);
 }
 
 function stripTrailingSlash(url: string): string {
@@ -61,11 +67,15 @@ export function getCashfreeCredentials(): {
  * Build a unique `verification_id` for Cashfree (max 50 chars, only
  * alphanum plus `.` `-` `_`; 409 on reuse).
  */
-export function buildVerificationId(vehicleNumber: string): string {
+const MAX_VERIFICATION_ID_LEN = 50;
+
+export function buildVerificationId(
+	vehicleNumber: string,
+	now: number = Date.now(),
+): string {
 	const sanitized = vehicleNumber
 		.toUpperCase()
 		.replace(/[^A-Z0-9]/g, "")
 		.slice(0, 20);
-	const candidate = `vm-${sanitized}-${Date.now()}`;
-	return candidate.slice(0, 50);
+	return `vm-${sanitized}-${now}`.slice(0, MAX_VERIFICATION_ID_LEN);
 }

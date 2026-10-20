@@ -36,19 +36,17 @@ export const getById = protectedProcedure
 
 		if (!driver) return null;
 
-		const aadhar = await db
-			.select()
-			.from(aadharCards)
-			.where(eq(aadharCards.driverId, driver.id));
-
-		const licenses = await db
-			.select()
-			.from(drivingLicenses)
-			.where(eq(drivingLicenses.driverId, driver.id));
+		const [[aadharCard], licenses] = await Promise.all([
+			db.select().from(aadharCards).where(eq(aadharCards.driverId, driver.id)),
+			db
+				.select()
+				.from(drivingLicenses)
+				.where(eq(drivingLicenses.driverId, driver.id)),
+		]);
 
 		return {
 			...driver,
-			aadharCard: aadhar[0] ?? null,
+			aadharCard: aadharCard ?? null,
 			drivingLicenses: licenses,
 		};
 	});
@@ -60,7 +58,7 @@ export const create = protectedProcedure
 			.insert(drivers)
 			.values({ ...input, userId: context.user.id })
 			.returning();
-		return driver;
+		return driver ?? null;
 	});
 
 export const update = protectedProcedure

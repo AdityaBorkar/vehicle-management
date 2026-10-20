@@ -23,17 +23,9 @@ import {
 import { CashfreeError } from "./errors";
 
 function referenceOf(body: Record<string, unknown>): string | null {
-	const referenceId = body.reference_id;
-	const verificationId = body.verification_id;
-	if (
-		(typeof referenceId === "string" && referenceId) ||
-		(typeof referenceId === "number" && Number.isFinite(referenceId))
-	) {
-		return String(referenceId);
-	}
-	if (typeof verificationId === "string" && verificationId) {
-		return verificationId;
-	}
+	const raw = body.reference_id ?? body.verification_id;
+	if (typeof raw === "string" && raw) return raw;
+	if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
 	return null;
 }
 
@@ -67,10 +59,13 @@ export async function verifyRc(
 	vehicleNumber: string,
 	verificationId?: string,
 ): Promise<RcVerifySuccess> {
-	const verification_id = (
+	const verificationIdValue = (
 		verificationId ?? buildVerificationId(vehicleNumber)
 	).slice(0, 50);
-	const payload = { vehicle_number: vehicleNumber, verification_id };
+	const payload = {
+		vehicle_number: vehicleNumber,
+		verification_id: verificationIdValue,
+	};
 	// Read credentials and endpoint outside the network try/catch so a
 	// missing-credential config error keeps its own code instead of being
 	// wrapped as a timeout.
@@ -83,14 +78,11 @@ export async function verifyRc(
 		isProviderError: (body) => {
 			if (typeof body.status === "string" && body.status !== "VALID") {
 				const reference = referenceOf(body);
+				const code = body.status === "INVALID" ? "INVALID_RC" : body.status;
+				const suffix = reference ? ` ref=${reference}` : "";
 				return {
-					code:
-						body.status === "INVALID"
-							? "INVALID_RC"
-							: typeof body.status === "string"
-								? body.status
-								: "INVALID_RC",
-					message: `Cashfree RC lookup found no record for "${vehicleNumber}".${reference ? ` ref=${reference}` : ""}`,
+					code,
+					message: `Cashfree RC lookup found no record for "${vehicleNumber}".${suffix}`,
 					requestId: reference,
 				};
 			}
@@ -100,13 +92,12 @@ export async function verifyRc(
 		makeError: (message, code, httpStatus, details) => {
 			// Cashfree signals "no record" as 200 + INVALID; surface it as 404
 			// so callers map it to NOT_FOUND instead of a 200-shaped error.
-			if (code === "INVALID_RC" && httpStatus === 200) {
-				return new CashfreeError(message, code, 404, details);
-			}
-			return new CashfreeError(message, code, httpStatus, details);
+			const mappedStatus =
+				code === "INVALID_RC" && httpStatus === 200 ? 404 : httpStatus;
+			return new CashfreeError(message, code, mappedStatus, details);
 		},
 		payload,
-		tag: `vehicle_number=${vehicleNumber} verification_id=${verification_id}`,
+		tag: `vehicle_number=${vehicleNumber} verification_id=${verificationIdValue}`,
 		url,
 	});
 }

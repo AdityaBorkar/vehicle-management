@@ -20,7 +20,7 @@ export const auth = betterAuth({
 	databaseHooks: {
 		user: {
 			create: {
-				before: async () => {
+				before: () => {
 					throw new APIError("BAD_REQUEST", {
 						message: "Signups are disabled",
 					});
@@ -31,9 +31,11 @@ export const auth = betterAuth({
 	plugins: [
 		expo(),
 		phoneNumber({
-			phoneNumberValidator: (phoneNumber) => isValidPhoneNumber(phoneNumber),
-			sendOTP: ({ phoneNumber, code }) => {
-				console.log(`[OTP] phone=${phoneNumber} code=${code}`);
+			phoneNumberValidator: (phone) => isValidPhoneNumber(phone),
+			sendOTP: ({ phoneNumber: phone, code }) => {
+				if (process.env.NODE_ENV !== "production") {
+					console.log(`[OTP] phone=${phone} code=${code}`);
+				}
 			},
 		}),
 		organization(),

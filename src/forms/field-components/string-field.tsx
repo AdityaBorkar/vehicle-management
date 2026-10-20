@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import type { ControllerRenderProps } from "react-hook-form";
 
 import { Input } from "#/components/ui/input";
@@ -6,40 +7,38 @@ import type { FieldMeta } from "../use-form";
 
 type StringFieldProps = {
 	field: ControllerRenderProps;
-	meta: FieldMeta | undefined;
-	disabled: boolean | undefined;
+	meta?: FieldMeta | undefined;
+	disabled?: boolean | undefined;
 	checks?: string[] | undefined;
 };
 
 function StringField({ field, meta, disabled, checks }: StringFieldProps) {
 	const component = meta?.component;
 
+	const shared = {
+		disabled,
+		onBlur: field.onBlur,
+		placeholder: meta?.placeholder,
+		ref: field.ref,
+		value: field.value ?? "",
+	};
+
 	if (component === "textarea") {
 		return (
 			<Textarea
-				disabled={disabled}
-				onBlur={field.onBlur}
-				onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+				{...shared}
+				onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
 					field.onChange(e.target.value)
 				}
-				placeholder={meta?.placeholder}
-				ref={field.ref}
-				value={field.value ?? ""}
 			/>
 		);
 	}
 
-	const inputType = resolveInputType(component, checks);
-
 	return (
 		<Input
-			disabled={disabled}
-			onBlur={field.onBlur}
+			{...shared}
 			onChange={(e) => field.onChange(e.target.value)}
-			placeholder={meta?.placeholder}
-			ref={field.ref}
-			type={inputType}
-			value={field.value ?? ""}
+			type={resolveInputType(component, checks)}
 		/>
 	);
 }

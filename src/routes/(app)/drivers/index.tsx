@@ -9,6 +9,7 @@ import { MoreHorizontal, Pencil, Plus, Trash2, User } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { CenteredLoader } from "#/components/centered-loader";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
 import {
@@ -110,11 +111,7 @@ function DriversPage() {
 	}
 
 	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center py-12">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-			</div>
-		);
+		return <CenteredLoader />;
 	}
 
 	return (

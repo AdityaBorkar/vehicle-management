@@ -9,6 +9,7 @@ import {
 } from "#/db-schema";
 import { db } from "#/lib/db";
 import { protectedProcedure } from "../base";
+import { snapshotSupersededDocument } from "./document-history";
 
 const licenseInputSchema = z.object({
 	address: z.string().optional(),
@@ -59,7 +60,7 @@ async function upsertReminderForClass(
 	vehicleClass: string,
 	expiryDate: Date,
 ) {
-	const existing = await db
+	const [existingReminder] = await db
 		.select()
 		.from(reminders)
 		.where(
@@ -70,24 +71,22 @@ async function upsertReminderForClass(
 			),
 		);
 
-	if (existing.length > 0) {
-		const existingReminder = existing[0];
-		if (!existingReminder) return;
+	if (existingReminder) {
 		await db
 			.update(reminders)
 			.set({ dueDate: expiryDate, status: "active", updatedAt: new Date() })
 			.where(eq(reminders.id, existingReminder.id));
-	} else {
-		await db.insert(reminders).values({
-			driverId,
-			dueDate: expiryDate,
-			licenseId,
-			notifyDays: [0, 7, 15, 30],
-			title: `DL ${vehicleClass} expiry`,
-			type: "dl_class",
-			userId,
-		});
+		return;
 	}
+	await db.insert(reminders).values({
+		driverId,
+		dueDate: expiryDate,
+		licenseId,
+		notifyDays: [0, 7, 15, 30],
+		title: `DL ${vehicleClass} expiry`,
+		type: "dl_class",
+		userId,
+	});
 }
 
 async function dismissReminderForClass(
@@ -361,7 +360,6 @@ export const updateClass = protectedProcedure
 			input.expiryDate &&
 			vc.expiryDate.getTime() !== input.expiryDate.getTime()
 		) {
-			const { snapshotSupersededDocument } = await import("./document-history");
 			await snapshotSupersededDocument({
 				documentName: `Driving License — ${vc.vehicleClass}`,
 				driverId: driver.id,
@@ -419,7 +417,6 @@ export const removeClass = protectedProcedure
 
 		// The class row is deleted — keep its dates in the documents vault
 		// so the old DL document is never lost.
-		const { snapshotSupersededDocument } = await import("./document-history");
 		await snapshotSupersededDocument({
 			documentName: `Driving License — ${vc.vehicleClass}`,
 			driverId: driver.id,

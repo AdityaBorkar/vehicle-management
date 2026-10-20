@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useId } from "react";
-import type { FieldErrors } from "react-hook-form";
+import type { ReactNode, Ref } from "react";
+import { useEffect } from "react";
+import type { FieldErrors, UseFormReturn } from "react-hook-form";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
 
@@ -9,7 +10,7 @@ import { buildDefaults, buildFieldMap } from "./use-form";
 
 export type ValidationMode = "onBlur" | "onChange" | "onSubmit" | "all";
 
-type FormRenderMethods = ReturnType<typeof useForm>;
+type FormRenderMethods = UseFormReturn;
 
 export type FormProps<T extends z.ZodType> = {
 	schema: T;
@@ -18,8 +19,8 @@ export type FormProps<T extends z.ZodType> = {
 	defaultValues?: Partial<z.infer<T>>;
 	validationMode?: ValidationMode;
 	className?: string;
-	children: React.ReactNode | ((methods: FormRenderMethods) => React.ReactNode);
-	ref?: React.Ref<unknown>;
+	children: ReactNode | ((methods: FormRenderMethods) => ReactNode);
+	ref?: Ref<unknown>;
 };
 
 export function Form<T extends z.ZodType>({
@@ -31,10 +32,9 @@ export function Form<T extends z.ZodType>({
 	className,
 	children,
 	ref,
-}: FormProps<T>) {
-	const uid = useId();
+}: FormProps<T>): ReactNode {
 	const fieldMap = buildFieldMap(schema);
-	const schemaDefaults = buildDefaults(schema, defaultValuesProp);
+	const schemaDefaults = buildDefaults(fieldMap, defaultValuesProp);
 
 	const methods = useForm({
 		defaultValues: schemaDefaults,
@@ -44,21 +44,22 @@ export function Form<T extends z.ZodType>({
 		reValidateMode: "onChange",
 	});
 
-	if (ref) {
-		(ref as React.MutableRefObject<unknown>).current = methods;
-	}
+	useEffect(() => {
+		if (ref) {
+			(ref as { current: unknown }).current = methods;
+		}
+	}, [ref, methods]);
 
-	function handleSubmit(e: React.FormEvent) {
+	function handleSubmit(e: React.FormEvent): void {
 		e.preventDefault();
 		methods.handleSubmit((values) => {
-			const parsed = schema.parse(values);
-			onSubmit(parsed as z.infer<T>);
+			onSubmit(values as z.infer<T>);
 			// biome-ignore lint/suspicious/noExplicitAny: react-hook-form handleSubmit callback signature mismatch
 		}, onInvalid as any)();
 	}
 
 	return (
-		<FormContext value={{ fieldMap, formId: uid }}>
+		<FormContext value={{ fieldMap }}>
 			<FormProvider {...methods}>
 				<form className={className} onSubmit={handleSubmit}>
 					{typeof children === "function" ? children(methods) : children}

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageCircle, ShieldCheck } from "lucide-react";
 
+import { CenteredLoader } from "#/components/centered-loader";
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { authClient } from "#/lib/auth-client";
@@ -13,11 +14,7 @@ function WhatsappSettingsPage() {
 	const { data: session, isPending } = authClient.useSession();
 
 	if (isPending) {
-		return (
-			<div className="flex items-center justify-center py-12">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-			</div>
-		);
+		return <CenteredLoader />;
 	}
 
 	const phoneNumber = session?.user?.phoneNumber;

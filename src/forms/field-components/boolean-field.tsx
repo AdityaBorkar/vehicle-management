@@ -7,32 +7,18 @@ import type { FieldMeta } from "../use-form";
 
 type BooleanFieldProps = {
 	field: ControllerRenderProps;
-	meta: FieldMeta | undefined;
-	disabled: boolean | undefined;
+	meta?: FieldMeta | undefined;
+	disabled?: boolean | undefined;
 	label: string;
 };
 
 function BooleanField({ field, meta, disabled, label }: BooleanFieldProps) {
-	const component = meta?.component;
-
-	if (component === "checkbox") {
-		return (
-			<div className="flex items-center gap-2">
-				<Checkbox
-					checked={field.value ?? false}
-					disabled={disabled}
-					onCheckedChange={field.onChange}
-					ref={field.ref}
-				/>
-				<Label className="font-normal">{label}</Label>
-			</div>
-		);
-	}
+	const Control = meta?.component === "checkbox" ? Checkbox : Switch;
 
 	return (
 		<div className="flex items-center gap-2">
-			<Switch
-				checked={field.value ?? false}
+			<Control
+				checked={Boolean(field.value)}
 				disabled={disabled}
 				onCheckedChange={field.onChange}
 				ref={field.ref}

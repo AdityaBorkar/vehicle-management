@@ -3,11 +3,17 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { externalApiCalls, vehicles } from "#/db-schema";
+import {
+	isApiExpressError,
+	mapRcResponseToLookup,
+	verifyRc,
+} from "#/lib/apiexpress/server";
 import { db } from "#/lib/db";
 import { formatVin } from "#/lib/utils";
 import { protectedProcedure } from "../base";
+import { snapshotSupersededDocument } from "./document-history";
 
-const vehicleInputSchema = z.object({
+const vehicleFields = {
 	color: z.string().optional(),
 	fitnessValidTill: z.coerce.date().optional(),
 	fuelType: z.enum(["Diesel", "Petrol", "CNG", "EV", "Other"]).optional(),
@@ -16,24 +22,24 @@ const vehicleInputSchema = z.object({
 	model: z.string().optional(),
 	pollutionValidTill: z.coerce.date().optional(),
 	registrationDate: z.coerce.date().optional(),
-	registrationNumber: z.string().min(1),
 	vin: z.string().optional(),
 	year: z.number().int().min(1900).max(2100).optional(),
+};
+
+const vehicleInputSchema = z.object({
+	...vehicleFields,
+	registrationNumber: z.string().min(1),
 });
 
 const vehicleUpdateSchema = z.object({
-	color: z.string().optional(),
+	...vehicleFields,
 	fitnessValidTill: z.coerce.date().optional().nullable(),
-	fuelType: z.enum(["Diesel", "Petrol", "CNG", "EV", "Other"]).optional(),
 	id: z.number().int(),
 	insuranceValidTill: z.coerce.date().optional().nullable(),
-	make: z.string().optional(),
-	model: z.string().optional(),
 	pollutionValidTill: z.coerce.date().optional().nullable(),
 	registrationDate: z.coerce.date().optional().nullable(),
 	registrationNumber: z.string().min(1).optional(),
 	vin: z.string().optional().nullable(),
-	year: z.number().int().min(1900).max(2100).optional(),
 });
 
 export const list = protectedProcedure.handler(async ({ context }) => {
@@ -112,9 +118,6 @@ export const update = protectedProcedure
 				s.next instanceof Date &&
 				s.next.getTime() !== s.old.getTime()
 			) {
-				const { snapshotSupersededDocument } = await import(
-					"./document-history"
-				);
 				await snapshotSupersededDocument({
 					documentName: s.documentName,
 					expiryDate: s.old,
@@ -151,38 +154,38 @@ const lookupInputSchema = z.object({
 	registrationNumber: z.string().min(1).max(20),
 });
 
+const FUEL_MAP: Record<string, "Diesel" | "Petrol" | "CNG" | "EV" | "Other"> = {
+	battery: "EV",
+	cng: "CNG",
+	diesel: "Diesel",
+	electric: "EV",
+	ev: "EV",
+	gasoline: "Petrol",
+	lng: "CNG",
+	lpg: "Other",
+	petrol: "Petrol",
+};
+
 function normalizeFuelType(
 	value: string | null | undefined,
 ): "Diesel" | "Petrol" | "CNG" | "EV" | "Other" | null {
 	if (!value) return null;
-	const v = value.toLowerCase();
+	const v = value.trim().toLowerCase();
+	const direct = FUEL_MAP[v];
+	if (direct) return direct;
 	if (v.includes("diesel")) return "Diesel";
 	if (v.includes("petrol") || v.includes("gasoline")) return "Petrol";
 	if (v.includes("cng") || v.includes("lng")) return "CNG";
-	if (
-		v.includes("electric") ||
-		v.includes(" ev") ||
-		v === "ev" ||
-		v.includes("battery")
-	)
+	if (v.includes("electric") || v.includes("battery") || v.includes(" ev"))
 		return "EV";
+	// Hybrid maps to Other: no dedicated hybrid fuel type in the schema.
 	if (v.includes("hybrid") || v.includes("lpg")) return "Other";
-	if (["diesel", "petrol", "cng", "ev", "other"].includes(v)) {
-		return (v === "ev" ? "EV" : `${v[0]?.toUpperCase()}${v.slice(1)}`) as
-			| "Diesel"
-			| "Petrol"
-			| "CNG"
-			| "EV"
-			| "Other";
-	}
 	return null;
 }
 
 function toISODate(value: Date | null | undefined): string | null {
-	if (!value) return null;
-	const date = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(date.getTime())) return null;
-	return date.toISOString().slice(0, 10);
+	if (!value || Number.isNaN(value.getTime())) return null;
+	return value.toISOString().slice(0, 10);
 }
 
 function asErrorRecord(value: unknown): Record<string, unknown> | null {
@@ -192,9 +195,7 @@ function asErrorRecord(value: unknown): Record<string, unknown> | null {
 }
 
 /** Map a provider HTTP status to the closest standard oRPC error code. */
-function orpcCodeForProviderStatus(
-	httpStatus: number,
-):
+type ProviderErrorCode =
 	| "BAD_GATEWAY"
 	| "BAD_REQUEST"
 	| "FORBIDDEN"
@@ -203,16 +204,23 @@ function orpcCodeForProviderStatus(
 	| "NOT_FOUND"
 	| "SERVICE_UNAVAILABLE"
 	| "TOO_MANY_REQUESTS"
-	| "UNAUTHORIZED" {
-	if (httpStatus === 401) return "UNAUTHORIZED";
-	if (httpStatus === 403) return "FORBIDDEN";
-	if (httpStatus === 404) return "NOT_FOUND";
-	if (httpStatus === 429) return "TOO_MANY_REQUESTS";
-	if (httpStatus === 502) return "BAD_GATEWAY";
-	if (httpStatus === 503) return "SERVICE_UNAVAILABLE";
-	if (httpStatus === 504) return "GATEWAY_TIMEOUT";
-	if (httpStatus >= 500) return "INTERNAL_SERVER_ERROR";
-	return "BAD_REQUEST";
+	| "UNAUTHORIZED";
+
+const CODE_BY_STATUS: Record<number, ProviderErrorCode> = {
+	401: "UNAUTHORIZED",
+	403: "FORBIDDEN",
+	404: "NOT_FOUND",
+	429: "TOO_MANY_REQUESTS",
+	502: "BAD_GATEWAY",
+	503: "SERVICE_UNAVAILABLE",
+	504: "GATEWAY_TIMEOUT",
+};
+
+function orpcCodeForProviderStatus(httpStatus: number): ProviderErrorCode {
+	return (
+		CODE_BY_STATUS[httpStatus] ??
+		(httpStatus >= 500 ? "INTERNAL_SERVER_ERROR" : "BAD_REQUEST")
+	);
 }
 
 /**
@@ -225,9 +233,6 @@ function orpcCodeForProviderStatus(
  * outage) — there is no browser-automation fallback on this path.
  */
 async function fetchAndStoreRc(normalized: string) {
-	const { isApiExpressError, mapRcResponseToLookup, verifyRc } = await import(
-		"#/lib/apiexpress/server"
-	);
 	const payload = { rc_number: normalized };
 	try {
 		const { body, httpStatus } = await verifyRc(normalized);
@@ -369,7 +374,6 @@ export const lookup = protectedProcedure
 			.orderBy(desc(externalApiCalls.id))
 			.limit(1);
 		if (cached?.response) {
-			const { mapRcResponseToLookup } = await import("#/lib/apiexpress/server");
 			const fields = mapRcResponseToLookup(cached.response);
 			return {
 				color: fields.color,

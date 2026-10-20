@@ -17,11 +17,11 @@ import {
 	Settings,
 	Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
 
+import { CenteredLoader } from "#/components/centered-loader";
 import { ThemeProvider } from "#/components/theme-provider";
 import { ThemeToggle } from "#/components/theme-toggle";
-// import PostHogProvider from "#/posthog/provider";
 import { Button } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
 import { authClient } from "#/lib/auth-client";
@@ -41,14 +41,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 	},
 );
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootDocument({ children }: { children: ReactNode }): ReactNode {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
 			</head>
 			<body>
-				{/*<PostHogProvider>*/}
 				<ThemeProvider>
 					<AppShell>{children}</AppShell>
 					<Toaster />
@@ -62,35 +61,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 						},
 					]}
 				/>
-				{/*</PostHogProvider>*/}
 				<Scripts />
 			</body>
 		</html>
 	);
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }): ReactNode {
 	const { data: session, isPending } = authClient.useSession();
-	const [hasSettled, setHasSettled] = useState(false);
 	const navigate = useNavigate();
 
-	useEffect(() => {
-		if (!isPending) {
-			setHasSettled(true);
-		}
-	}, [isPending]);
-
-	async function handleSignOut() {
+	async function handleSignOut(): Promise<void> {
 		await authClient.signOut();
 		await navigate({ to: "/" });
 	}
 
-	if (!hasSettled) {
-		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-			</div>
-		);
+	if (isPending) {
+		return <CenteredLoader />;
 	}
 
 	if (!session?.user) {
@@ -146,15 +133,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	);
 }
 
-export function NavLink({
-	to,
-	icon: Icon,
-	label,
-}: {
+type NavLinkProps = {
 	to: string;
-	icon: React.ComponentType<{ className?: string }>;
+	icon: ComponentType<{ className?: string }>;
 	label: string;
-}) {
+};
+
+export function NavLink({ to, icon: Icon, label }: NavLinkProps): ReactNode {
 	return (
 		<Link
 			className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground text-sm transition-colors hover:bg-accent hover:text-accent-foreground [&.active]:bg-accent [&.active]:font-medium [&.active]:text-accent-foreground"

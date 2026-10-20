@@ -29,9 +29,25 @@ function getApiKey(): string {
 }
 
 function requestIdOf(body: Record<string, unknown>): string | null {
-	return typeof body.request_id === "string" && body.request_id
-		? body.request_id
-		: null;
+	if (typeof body.request_id !== "string" || !body.request_id) return null;
+	return body.request_id;
+}
+
+type ProviderErrorShape = {
+	code: string;
+	message: string;
+	requestId: string | null;
+};
+
+function toErrorShape(body: Record<string, unknown>): ProviderErrorShape {
+	return {
+		code: typeof body.code === "string" ? body.code : "UPSTREAM_ERROR",
+		message:
+			typeof body.message === "string"
+				? body.message
+				: "RC verification failed.",
+		requestId: requestIdOf(body),
+	};
 }
 
 /**
@@ -47,27 +63,11 @@ export async function verifyRc(rcNumber: string): Promise<RcVerifySuccess> {
 	// error keeps its own code instead of being wrapped as a timeout.
 	const apiKey = getApiKey();
 	return postJsonWithRetry({
-		describeErrorBody: (body) => ({
-			code: typeof body.code === "string" ? body.code : "UPSTREAM_ERROR",
-			message:
-				typeof body.message === "string"
-					? body.message
-					: "RC verification failed.",
-			requestId: requestIdOf(body),
-		}),
+		describeErrorBody: toErrorShape,
 		endpointPath: APIEXPRESS_ENDPOINT_PATH,
 		headers: { Authorization: `Bearer ${apiKey}` },
 		isProviderError: (body) =>
-			body.status === "error"
-				? {
-						code: typeof body.code === "string" ? body.code : "UPSTREAM_ERROR",
-						message:
-							typeof body.message === "string"
-								? body.message
-								: "RC verification failed.",
-						requestId: requestIdOf(body),
-					}
-				: null,
+			body.status === "error" ? toErrorShape(body) : null,
 		logPrefix: APIEXPRESS_LOG_PREFIX,
 		makeError: (message, code, httpStatus, details) =>
 			new ApiExpressError(message, code, httpStatus, details),

@@ -4,10 +4,12 @@ import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query
 
 import { routeTree } from "./routeTree.gen";
 
+const QUERY_STALE_MS = 60 * 1000;
+
 export function getRouter() {
 	const queryClient = new QueryClient({
 		defaultOptions: {
-			queries: { staleTime: 60 * 1000 },
+			queries: { staleTime: QUERY_STALE_MS },
 		},
 	});
 

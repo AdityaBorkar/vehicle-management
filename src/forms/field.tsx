@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ControllerRenderProps } from "react-hook-form";
 import { Controller, useFormContext as useRhfContext } from "react-hook-form";
 
@@ -23,7 +24,7 @@ type FieldConfig<T extends ComboboxOption> =
 // biome-ignore lint/style/useComponentExportOnlyModules: type-only export co-located with component
 export type { FieldConfig };
 
-type FieldProps<T extends ComboboxOption> = {
+type FieldProps<T extends ComboboxOption = ComboboxOption> = {
 	name: string;
 	disabled?: boolean;
 	config?: FieldConfig<T>;
@@ -32,7 +33,7 @@ type FieldProps<T extends ComboboxOption> = {
 		config: FieldConfig<T> | undefined;
 		error?: string | undefined;
 		disabled?: boolean | undefined;
-	}) => React.ReactNode;
+	}) => ReactNode;
 };
 
 type ResolvedFieldDef = {
@@ -65,7 +66,30 @@ function resolveFieldDef(fieldDef: FieldDef): ResolvedFieldDef {
 	};
 }
 
-function Field<T extends ComboboxOption>({
+function FieldShell({
+	label,
+	error,
+	description,
+	children,
+}: {
+	label: string;
+	error?: string | undefined;
+	description?: string | undefined;
+	children: ReactNode;
+}): ReactNode {
+	return (
+		<div className="space-y-2">
+			<Label>{label}</Label>
+			{children}
+			{error && <p className="text-destructive text-xs">{error}</p>}
+			{description && !error && (
+				<p className="text-muted-foreground text-xs">{description}</p>
+			)}
+		</div>
+	);
+}
+
+function Field<T extends ComboboxOption = ComboboxOption>({
 	name,
 	disabled,
 	config,
@@ -89,23 +113,19 @@ function Field<T extends ComboboxOption>({
 
 				if (overrides) {
 					return (
-						<div className="space-y-2">
-							<Label>{label}</Label>
+						<FieldShell
+							description={meta?.description}
+							error={error}
+							label={label}
+						>
 							{overrides({ config, disabled, error, field })}
-							{error && <p className="text-destructive text-xs">{error}</p>}
-							{meta?.description && !error && (
-								<p className="text-muted-foreground text-xs">
-									{meta.description}
-								</p>
-							)}
-						</div>
+						</FieldShell>
 					);
 				}
 
 				if (resolved.kind === "array") {
 					return (
-						<div className="space-y-2">
-							<Label>{label}</Label>
+						<FieldShell error={error} label={label}>
 							<FieldArray
 								config={config as FieldArrayConfig | undefined}
 								control={control}
@@ -114,14 +134,16 @@ function Field<T extends ComboboxOption>({
 								meta={meta}
 								name={name}
 							/>
-							{error && <p className="text-destructive text-xs">{error}</p>}
-						</div>
+						</FieldShell>
 					);
 				}
 
 				return (
-					<div className="space-y-2">
-						<Label>{label}</Label>
+					<FieldShell
+						description={meta?.description}
+						error={error}
+						label={label}
+					>
 						{renderField(
 							resolved,
 							field,
@@ -129,13 +151,7 @@ function Field<T extends ComboboxOption>({
 							disabled,
 							config as FieldConfig<ComboboxOption> | undefined,
 						)}
-						{error && <p className="text-destructive text-xs">{error}</p>}
-						{meta?.description && !error && (
-							<p className="text-muted-foreground text-xs">
-								{meta.description}
-							</p>
-						)}
-					</div>
+					</FieldShell>
 				);
 			}}
 		/>
@@ -148,7 +164,7 @@ function renderField(
 	meta: FieldMeta | undefined,
 	disabled: boolean | undefined,
 	config: FieldConfig<ComboboxOption> | undefined,
-): React.ReactNode {
+): ReactNode {
 	if (meta?.component === "combobox") {
 		return (
 			<ComboboxField

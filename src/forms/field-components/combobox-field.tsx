@@ -35,8 +35,8 @@ type ComboboxConfig<TOption extends ComboboxOption = ComboboxOption> = {
 
 type ComboboxFieldProps = {
 	field: ControllerRenderProps;
-	meta: FieldMeta | undefined;
-	disabled: boolean | undefined;
+	meta?: FieldMeta | undefined;
+	disabled?: boolean | undefined;
 	config: ComboboxConfig<ComboboxOption> | undefined;
 };
 
@@ -50,7 +50,6 @@ function defaultGetOptionValue(o: ComboboxOption): string | number {
 
 function ComboboxField({ field, meta, disabled, config }: ComboboxFieldProps) {
 	const [open, setOpen] = useState(false);
-	const [search, setSearch] = useState("");
 
 	const options = config?.options ?? [];
 	const getLabel = config?.getOptionLabel ?? defaultGetOptionLabel;
@@ -62,14 +61,12 @@ function ComboboxField({ field, meta, disabled, config }: ComboboxFieldProps) {
 		(o) => String(getValue(o)) === String(field.value),
 	);
 
-	const filtered = search
-		? options.filter((o) =>
-				getLabel(o).toLowerCase().includes(search.toLowerCase()),
-			)
-		: options;
+	function handleOpenChange(next: boolean): void {
+		setOpen(next);
+	}
 
 	return (
-		<Popover onOpenChange={setOpen} open={open}>
+		<Popover onOpenChange={handleOpenChange} open={open}>
 			<PopoverTrigger
 				disabled={disabled}
 				render={
@@ -91,19 +88,15 @@ function ComboboxField({ field, meta, disabled, config }: ComboboxFieldProps) {
 			</PopoverTrigger>
 			<PopoverContent align="start" className="p-0" sideOffset={4}>
 				<Command>
-					<CommandInput
-						onValueChange={setSearch}
-						placeholder={searchPlaceholder}
-						value={search}
-					/>
+					<CommandInput placeholder={searchPlaceholder} />
 					<CommandList>
 						<CommandEmpty>{emptyMessage}</CommandEmpty>
 						<CommandGroup>
-							{filtered.map((option) => {
+							{options.map((option) => {
 								const val = getValue(option);
 								return (
 									<CommandItem
-										key={String(val)}
+										key={`${getLabel(option)}-${String(val)}`}
 										onSelect={() => {
 											field.onChange(val);
 											setOpen(false);

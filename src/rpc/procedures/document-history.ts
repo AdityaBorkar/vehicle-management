@@ -3,12 +3,7 @@ import { db } from "#/lib/db";
 
 /**
  * Snapshot a replaced value into the documents vault as history.
- * The row is written `superseded` straight away — it preserves the
- * previous issue/expiry dates and is never deleted or updated again.
- *
- * Kept in its own module (outside the oRPC router namespaces) because
- * every export of a `./procedures/*` module registered in the router
- * must be a procedure.
+ * Rows are write-once and never deleted.
  */
 export async function snapshotSupersededDocument(input: {
 	userId: string;
@@ -25,7 +20,7 @@ export async function snapshotSupersededDocument(input: {
 	issueDate?: Date | null;
 	expiryDate?: Date | null;
 	notes?: string | null;
-}) {
+}): Promise<void> {
 	await db.insert(documents).values({
 		documentName: input.documentName,
 		documentNumber: input.documentNumber ?? null,

@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Car } from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
 import { useId, useState } from "react";
 
 import { ThemeToggle } from "#/components/theme-toggle";
@@ -29,7 +30,16 @@ export const Route = createFileRoute("/")({
 	component: LoginPage,
 });
 
-function LoginPage() {
+function FormError({ message }: { message: string }): ReactNode {
+	if (!message) return null;
+	return (
+		<div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
+			{message}
+		</div>
+	);
+}
+
+function LoginPage(): ReactNode {
 	const uid = useId();
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [code, setCode] = useState("");
@@ -37,11 +47,29 @@ function LoginPage() {
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 
-	async function handleSendOtp(e: React.FormEvent) {
+	function resetToPhone(): void {
+		setOtpSent(false);
+		setCode("");
+		setError("");
+	}
+
+	function reloadHome(): void {
+		window.location.href = "/";
+	}
+
+	function validatePhone(value: string): string | null {
+		const normalized = normalizePhoneNumber(value);
+		if (!isValidPhoneNumber(normalized)) {
+			return null;
+		}
+		return normalized;
+	}
+
+	async function handleSendOtp(e: FormEvent): Promise<void> {
 		e.preventDefault();
 		setError("");
-		const normalizedPhone = normalizePhoneNumber(phoneNumber);
-		if (!isValidPhoneNumber(normalizedPhone)) {
+		const normalizedPhone = validatePhone(phoneNumber);
+		if (!normalizedPhone) {
 			setError("Enter a valid phone number.");
 			return;
 		}
@@ -62,44 +90,7 @@ function LoginPage() {
 		}
 	}
 
-	async function handleDevLogin() {
-		setError("");
-		const normalizedPhone = normalizePhoneNumber(phoneNumber);
-		if (!isValidPhoneNumber(normalizedPhone)) {
-			setError("Enter a valid phone number first.");
-			return;
-		}
-		setLoading(true);
-		try {
-			const sent = await authClient.phoneNumber.sendOtp({
-				phoneNumber: normalizedPhone,
-			});
-			if (sent.error) {
-				setError(sent.error.message ?? "Failed to send OTP");
-				return;
-			}
-			const { code: devCode } = await getDevOtpCode({
-				data: { phoneNumber: normalizedPhone },
-			});
-			const verified = await authClient.phoneNumber.verify({
-				code: devCode,
-				phoneNumber: normalizedPhone,
-			});
-			if (verified.error) {
-				setError(verified.error.message ?? "Verification failed");
-				return;
-			}
-			window.location.href = "/";
-		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "An unexpected error occurred",
-			);
-		} finally {
-			setLoading(false);
-		}
-	}
-
-	async function handleVerifyOtp(e: React.FormEvent) {
+	async function handleVerifyOtp(e: FormEvent): Promise<void> {
 		e.preventDefault();
 		setError("");
 		setLoading(true);
@@ -109,8 +100,7 @@ function LoginPage() {
 				phoneNumber: normalizePhoneNumber(phoneNumber),
 			});
 			if (result.error) {
-				// better-auth returns 500 "Failed to update user" when no user
-				// row matches (signups are disabled, so no auto-create).
+				// Signups are disabled, so better-auth returns 500 when no user row matches.
 				const status = (result.error as { status?: number }).status;
 				if (
 					status === 500 ||
@@ -123,7 +113,7 @@ function LoginPage() {
 					setError(result.error.message ?? "Verification failed");
 				}
 			} else {
-				window.location.href = "/";
+				reloadHome();
 			}
 		} catch {
 			setError("An unexpected error occurred");
@@ -150,11 +140,7 @@ function LoginPage() {
 				{otpSent ? (
 					<form onSubmit={handleVerifyOtp}>
 						<CardContent className="space-y-4">
-							{error && (
-								<div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
-									{error}
-								</div>
-							)}
+							<FormError message={error} />
 							<div className="space-y-2">
 								<Label htmlFor={`${uid}-otp`}>OTP</Label>
 								<Input
@@ -176,11 +162,7 @@ function LoginPage() {
 							</Button>
 							<Button
 								className="text-muted-foreground"
-								onClick={() => {
-									setOtpSent(false);
-									setCode("");
-									setError("");
-								}}
+								onClick={resetToPhone}
 								size="sm"
 								type="button"
 								variant="ghost"
@@ -192,11 +174,7 @@ function LoginPage() {
 				) : (
 					<form onSubmit={handleSendOtp}>
 						<CardContent className="space-y-4">
-							{error && (
-								<div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
-									{error}
-								</div>
-							)}
+							<FormError message={error} />
 							<div className="space-y-2">
 								<Label htmlFor={`${uid}-phone`}>Phone Number</Label>
 								<Input
@@ -214,17 +192,6 @@ function LoginPage() {
 							<Button className="w-full" disabled={loading} type="submit">
 								{loading ? "Sending..." : "Send OTP"}
 							</Button>
-							{import.meta.env.DEV ? (
-								<Button
-									className="w-full"
-									disabled={loading}
-									onClick={() => void handleDevLogin()}
-									type="button"
-									variant="secondary"
-								>
-									{loading ? "Working..." : "Dev login (autofill OTP)"}
-								</Button>
-							) : null}
 						</CardFooter>
 					</form>
 				)}

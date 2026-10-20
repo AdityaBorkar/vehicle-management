@@ -1,10 +1,13 @@
 import { IconPlus, IconTrash } from "@tabler/icons-react";
+import type { ReactNode } from "react";
+import { Fragment } from "react";
 import type { Control } from "react-hook-form";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import type { FieldMap, FieldMeta } from "../use-form";
+import { deriveDefault } from "../use-form";
 
 type FieldArrayConfig = {
 	addLabel?: string;
@@ -17,13 +20,36 @@ type FieldArrayConfig = {
 };
 
 type FieldArrayProps = {
-	meta: FieldMeta | undefined;
-	disabled: boolean | undefined;
+	meta?: FieldMeta | undefined;
+	disabled?: boolean | undefined;
 	elementFields: FieldMap | undefined;
 	config: FieldArrayConfig | undefined;
 	control: Control;
 	name: string;
 };
+
+function AddButton({
+	disabled,
+	onAdd,
+	label,
+}: {
+	disabled?: boolean | undefined;
+	onAdd: () => void;
+	label: string;
+}): ReactNode {
+	return (
+		<Button
+			disabled={disabled}
+			onClick={onAdd}
+			size="xs"
+			type="button"
+			variant="outline"
+		>
+			<IconPlus className="h-3 w-3" />
+			{label}
+		</Button>
+	);
+}
 
 function FieldArray({
 	meta,
@@ -42,43 +68,34 @@ function FieldArray({
 
 	const addLabel = config?.addLabel ?? `Add ${meta?.label ?? "item"}`;
 	const maxItems = config?.maxItems;
+	const addDisabled =
+		disabled || (maxItems !== undefined && fields.length >= maxItems);
 
-	function handleAdd() {
-		if (disabled) return;
-		if (maxItems && fields.length >= maxItems) return;
+	function handleAdd(): void {
+		if (addDisabled) return;
 		const defaults: Record<string, unknown> = {};
 		if (elementFields) {
 			for (const [key, def] of Object.entries(elementFields)) {
-				if (def.kind === "string") defaults[key] = "";
-				else if (def.kind === "number") defaults[key] = 0;
-				else if (def.kind === "boolean") defaults[key] = false;
+				defaults[key] = deriveDefault(def);
 			}
 		}
 		append(defaults);
 	}
 
 	if (config?.renderRow) {
+		const renderRow = config.renderRow;
 		return (
 			<div className="space-y-3">
 				{fields.map((item, index) => (
-					<div key={item.id}>
-						{config?.renderRow?.({
+					<Fragment key={item.id}>
+						{renderRow({
 							fields: item as Record<string, unknown>,
 							index,
 							remove: () => remove(index),
 						})}
-					</div>
+					</Fragment>
 				))}
-				<Button
-					disabled={disabled}
-					onClick={handleAdd}
-					size="xs"
-					type="button"
-					variant="outline"
-				>
-					<IconPlus className="h-3 w-3" />
-					{addLabel}
-				</Button>
+				<AddButton disabled={disabled} label={addLabel} onAdd={handleAdd} />
 			</div>
 		);
 	}
@@ -90,9 +107,7 @@ function FieldArray({
 	return (
 		<div className="space-y-3">
 			{fields.length === 0 && (
-				<p className="text-muted-foreground text-sm">
-					No {meta?.label?.toLowerCase() ?? "items"} added yet
-				</p>
+				<p className="text-muted-foreground text-sm">No items added yet</p>
 			)}
 			{fields.map((item, index) => (
 				<div className="flex items-start gap-2" key={item.id}>
@@ -107,7 +122,6 @@ function FieldArray({
 						</div>
 					))}
 					<Button
-						className="mt-0"
 						disabled={disabled}
 						onClick={() => remove(index)}
 						size="icon-sm"
@@ -118,18 +132,7 @@ function FieldArray({
 					</Button>
 				</div>
 			))}
-			<Button
-				disabled={
-					disabled || (maxItems !== undefined && fields.length >= maxItems)
-				}
-				onClick={handleAdd}
-				size="xs"
-				type="button"
-				variant="outline"
-			>
-				<IconPlus className="h-3 w-3" />
-				{addLabel}
-			</Button>
+			<AddButton disabled={addDisabled} label={addLabel} onAdd={handleAdd} />
 		</div>
 	);
 }

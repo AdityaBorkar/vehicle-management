@@ -12,16 +12,6 @@ export class ApiExpressError extends RcProviderError {
 	}
 }
 
-/**
- * Structural type guard — deliberately not `instanceof`, so it keeps
- * working across module-registry boundaries (dynamic `import()` in
- * procedures, bundled server output).
- */
 export function isApiExpressError(err: unknown): err is ApiExpressError {
-	return (
-		isRcProviderError(err) &&
-		(err as { name?: unknown }).name === "ApiExpressError" &&
-		typeof (err as { code?: unknown }).code === "string" &&
-		typeof (err as { httpStatus?: unknown }).httpStatus === "number"
-	);
+	return isRcProviderError(err) && err.provider === "apiexpress";
 }

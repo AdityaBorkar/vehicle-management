@@ -1,5 +1,3 @@
-import type { z } from "zod";
-
 export type FieldMeta = {
 	label?: string;
 	placeholder?: string;
@@ -23,7 +21,6 @@ export type FieldDef = {
 	enumEntries?: Record<string, string> | undefined;
 	arrayElement?: FieldMap | undefined;
 	innerKind?: FieldKind | undefined;
-	innerMeta?: FieldMeta | undefined;
 	checks?: string[] | undefined;
 };
 
@@ -32,13 +29,17 @@ export type FieldMap = Record<string, FieldDef>;
 // biome-ignore lint/suspicious/noExplicitAny: Zod internal _zod property is untyped
 export function getKind(schema: any): FieldKind {
 	const type: string = schema._zod?.def?.type ?? "";
-	if (type === "string") return "string";
-	if (type === "number") return "number";
-	if (type === "boolean") return "boolean";
-	if (type === "enum") return "enum";
-	if (type === "array") return "array";
-	if (type === "optional") return "optional";
-	return "unknown";
+	switch (type) {
+		case "string":
+		case "number":
+		case "boolean":
+		case "enum":
+		case "array":
+		case "optional":
+			return type;
+		default:
+			return "unknown";
+	}
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: Zod internal .meta() return is untyped
@@ -69,23 +70,22 @@ export function buildFieldDef(schema: any): FieldDef {
 
 	if (kind === "optional") {
 		const innerSchema = schema._zod?.def?.innerType;
-		const innerKind = innerSchema ? getKind(innerSchema) : "unknown";
+		const innerKind: FieldKind = innerSchema ? getKind(innerSchema) : "unknown";
 		const innerMeta = innerSchema ? getMeta(innerSchema) : undefined;
-		const checks = innerSchema ? getChecks(innerSchema) : [];
-		return {
-			checks,
+		const def: FieldDef = {
+			checks: innerSchema ? getChecks(innerSchema) : [],
 			innerKind,
-			innerMeta,
 			isOptional: true,
 			kind,
 			meta: meta ?? innerMeta,
-			...(innerKind === "enum" && innerSchema
-				? { enumEntries: innerSchema._zod?.def?.entries }
-				: {}),
-			...(innerKind === "array" && innerSchema
-				? { arrayElement: buildFieldMap(innerSchema._zod?.def?.element) }
-				: {}),
 		};
+		if (innerKind === "enum" && innerSchema) {
+			def.enumEntries = innerSchema._zod?.def?.entries;
+		}
+		if (innerKind === "array" && innerSchema) {
+			def.arrayElement = buildFieldMap(innerSchema._zod?.def?.element);
+		}
+		return def;
 	}
 
 	if (kind === "array") {
@@ -98,13 +98,16 @@ export function buildFieldDef(schema: any): FieldDef {
 		};
 	}
 
-	return {
+	const def: FieldDef = {
 		checks: getChecks(schema),
 		isOptional: false,
 		kind,
 		meta,
-		...(kind === "enum" ? { enumEntries: schema._zod?.def?.entries } : {}),
 	};
+	if (kind === "enum") {
+		def.enumEntries = schema._zod?.def?.entries;
+	}
+	return def;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: Zod internal .shape property is untyped
@@ -130,10 +133,9 @@ export function deriveDefault(fieldDef: FieldDef): unknown {
 }
 
 export function buildDefaults(
-	schema: z.ZodType,
+	fieldMap: FieldMap,
 	overrides?: Record<string, unknown>,
 ): Record<string, unknown> {
-	const fieldMap = buildFieldMap(schema);
 	const defaults: Record<string, unknown> = {};
 	for (const [key, def] of Object.entries(fieldMap)) {
 		defaults[key] = deriveDefault(def);

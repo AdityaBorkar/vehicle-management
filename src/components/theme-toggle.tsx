@@ -14,7 +14,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
-import { cn } from "#/lib/utils";
 
 const themeOptions = [
 	{ icon: IconSun, label: "Light", value: "light" },
@@ -40,7 +39,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 				aria-label="Change theme"
 				render={
 					<Button
-						className={cn(className)}
+						className={className}
 						size="icon-sm"
 						type="button"
 						variant="ghost"
@@ -60,9 +59,9 @@ export function ThemeToggle({ className }: { className?: string }) {
 							<Icon className="h-4 w-4" />
 							{label}
 						</span>
-						{mounted && theme === value ? (
+						{mounted && theme === value && (
 							<IconCheck className="h-4 w-4 text-primary" />
-						) : null}
+						)}
 					</DropdownMenuItem>
 				))}
 			</DropdownMenuContent>

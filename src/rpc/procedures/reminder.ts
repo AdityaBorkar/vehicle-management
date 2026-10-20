@@ -31,10 +31,9 @@ export const list = protectedProcedure.handler(async ({ context }) => {
 });
 
 export const getUpcoming = protectedProcedure
-	.input(z.object({ days: z.number().int().default(30) }).optional())
+	.input(z.object({ days: z.number().int().default(30) }).default({ days: 30 }))
 	.handler(async ({ context, input }) => {
-		const futureDate = new Date();
-		futureDate.setDate(futureDate.getDate() + (input?.days ?? 30));
+		const futureDate = new Date(Date.now() + input.days * 86_400_000);
 		return db
 			.select()
 			.from(reminders)

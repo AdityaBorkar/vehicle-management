@@ -4,20 +4,23 @@ import { join } from "node:path";
 
 import { type BrowserContext, chromium, type Page } from "patchright";
 
+import { vahanVehicleDetails } from "./workflows/vahan-vehicle-details";
+
 export interface BrowserAutomationOptions {
 	headless?: boolean;
 	profileDir?: string;
 }
 
 function resolveProfileDir(): string {
-	if (process.env.BROWSER_PROFILE_DIR) return process.env.BROWSER_PROFILE_DIR;
+	const configured = process.env.BROWSER_PROFILE_DIR?.trim();
+	if (configured) return configured;
 	const cacheBase = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
 	return join(cacheBase, "vehicle-management", "chrome-profile");
 }
 
 function shouldRunHeadless(explicit?: boolean): boolean {
 	if (explicit !== undefined) return explicit;
-	const env = process.env.HEADLESS?.toLowerCase();
+	const env = process.env.HEADLESS?.trim().toLowerCase();
 	return env === "1" || env === "true";
 }
 
@@ -46,7 +49,7 @@ class BrowserAutomation {
 			headless,
 			locale: "en-IN",
 			timezoneId: "Asia/Kolkata",
-			viewport: null as { height: number; width: number } | null,
+			viewport: null,
 		};
 
 		this.initPromise = (async () => {
@@ -57,14 +60,21 @@ class BrowserAutomation {
 				});
 				this.context = context;
 				return context;
-			} catch {
+			} catch (firstErr) {
+				console.warn(
+					"[browser] chrome channel launch failed, retrying with default chromium",
+					firstErr,
+				);
 				const context = await chromium.launchPersistentContext(profileDir, {
 					...baseOptions,
 				});
 				this.context = context;
 				return context;
 			}
-		})();
+		})().catch((err: unknown) => {
+			this.initPromise = null;
+			throw err;
+		});
 
 		return this.initPromise;
 	}
@@ -82,19 +92,11 @@ class BrowserAutomation {
 		}
 	}
 
-	async scrapeChallanDetails(_vehicleNumber: string): Promise<unknown> {
-		const page = await this.newPage();
-		try {
-			return null;
-		} finally {
-			await page.close();
-		}
+	async scrapeChallanDetails(_vehicleNumber: string): Promise<null> {
+		return null;
 	}
 
 	async scrapeVehicleDetails(vehicleNumber: string): Promise<unknown> {
-		const { vahanVehicleDetails } = await import(
-			"./workflows/vahan-vehicle-details"
-		);
 		const page = await this.newPage();
 		try {
 			return await vahanVehicleDetails(page, {
@@ -110,10 +112,14 @@ export const browserAutomation = new BrowserAutomation();
 
 export type { BrowserContext, Page };
 
-const cleanup = async () => {
-	await browserAutomation.close();
-	process.exit(0);
-};
+export function registerBrowserCleanup(): void {
+	const cleanup = async () => {
+		await browserAutomation.close();
+		process.exit(0);
+	};
 
-process.on("SIGINT", cleanup);
-process.on("SIGTERM", cleanup);
+	process.on("SIGINT", cleanup);
+	process.on("SIGTERM", cleanup);
+}
+
+registerBrowserCleanup();
