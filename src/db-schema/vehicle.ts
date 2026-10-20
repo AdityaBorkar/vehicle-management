@@ -41,6 +41,7 @@ export const vehicles = pgTable(
 			withTimezone: true,
 		}).defaultNow(),
 		userId: text("user_id").notNull(),
+		vin: text(),
 		year: integer(),
 	},
 	(t) => [uniqueIndex("vehicles_reg_unique").on(t.registrationNumber)],

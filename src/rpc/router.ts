@@ -1,5 +1,6 @@
 import * as aadharCard from "./procedures/aadhar-card";
 import * as dieselCard from "./procedures/diesel-card";
+import * as document from "./procedures/document";
 import * as driver from "./procedures/driver";
 import * as fastag from "./procedures/fastag";
 import * as gpsDevice from "./procedures/gps-device";
@@ -10,6 +11,7 @@ import * as vehicle from "./procedures/vehicle";
 export const router = {
 	aadharCard,
 	dieselCard,
+	document,
 	driver,
 	fastag,
 	gpsDevice,

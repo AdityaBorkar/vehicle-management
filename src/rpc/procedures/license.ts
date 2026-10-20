@@ -7,7 +7,7 @@ import {
 	drivingLicenses,
 	reminders,
 } from "#/db-schema";
-import { db } from "#/lib/db/server";
+import { db } from "#/lib/db";
 import { authorized } from "../base";
 
 const licenseInputSchema = z.object({
@@ -354,6 +354,27 @@ export const updateClass = authorized
 			.where(eq(dlVehicleClasses.id, id))
 			.returning();
 
+		// A renewal overwrites the live expiry — keep the replaced date in
+		// the documents vault so old DL documents are never lost.
+		if (
+			updated &&
+			input.expiryDate &&
+			vc.expiryDate.getTime() !== input.expiryDate.getTime()
+		) {
+			const { snapshotSupersededDocument } = await import("./document-history");
+			await snapshotSupersededDocument({
+				documentName: `Driving License — ${vc.vehicleClass}`,
+				driverId: driver.id,
+				driverName: driver.name,
+				expiryDate: vc.expiryDate,
+				issueDate: license.issueDate,
+				kind: "dl_class",
+				licenseId: vc.licenseId,
+				licenseNumber: license.licenseNumber,
+				userId: context.user.id,
+			});
+		}
+
 		if (updated && input.expiryDate && license) {
 			await upsertReminderForClass(
 				context.user.id,
@@ -395,6 +416,22 @@ export const removeClass = authorized
 			);
 
 		if (!driver) return null;
+
+		// The class row is deleted — keep its dates in the documents vault
+		// so the old DL document is never lost.
+		const { snapshotSupersededDocument } = await import("./document-history");
+		await snapshotSupersededDocument({
+			documentName: `Driving License — ${vc.vehicleClass}`,
+			driverId: driver.id,
+			driverName: driver.name,
+			expiryDate: vc.expiryDate,
+			issueDate: license.issueDate,
+			kind: "dl_class",
+			licenseId: vc.licenseId,
+			licenseNumber: license.licenseNumber,
+			notes: "Vehicle class removed",
+			userId: context.user.id,
+		});
 
 		await dismissReminderForClass(license.id, vc.vehicleClass);
 
