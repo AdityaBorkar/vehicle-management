@@ -4,9 +4,9 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "#/components/ui/badge";
-import { Button } from "#/components/ui/button";
+import { Button, buttonVariants } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { orpc } from "#/lib/orpc-query";
+import { orpc } from "#/lib/rpc";
 
 export const Route = createFileRoute("/(app)/vehicles/$vehicleId")({
 	component: VehicleDetailPage,
@@ -65,10 +65,12 @@ function VehicleDetailPage() {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<Link to="/vehicles">
-						<Button size="icon" type="button" variant="ghost">
-							<ArrowLeft className="h-4 w-4" />
-						</Button>
+					<Link
+						aria-label="Back to vehicles"
+						className={buttonVariants({ size: "icon", variant: "ghost" })}
+						to="/vehicles"
+					>
+						<ArrowLeft className="h-4 w-4" />
 					</Link>
 					<h1 className="font-bold text-2xl">{vehicle.registrationNumber}</h1>
 					{vehicle.fuelType && (
@@ -99,6 +101,7 @@ function VehicleDetailPage() {
 						/>
 						<DetailRow label="Year" value={vehicle.year?.toString() ?? null} />
 						<DetailRow label="Color" value={vehicle.color} />
+						<DetailRow label="VIN / Chassis Number" value={vehicle.vin} />
 						<DetailRow
 							label="Registration Date"
 							value={formatDate(vehicle.registrationDate)}

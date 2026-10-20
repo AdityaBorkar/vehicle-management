@@ -6,8 +6,8 @@ import { organization, phoneNumber } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import * as schema from "#/db-schema";
-import { db } from "#/lib/db/server";
-import { isValidPhoneNumber } from "#/lib/phone";
+import { db } from "#/lib/db";
+import { isValidPhoneNumber } from "#/lib/utils";
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {

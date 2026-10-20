@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { aadharCards, drivers, drivingLicenses } from "#/db-schema";
-import { db } from "#/lib/db/server";
+import { db } from "#/lib/db";
 import { authorized } from "../base";
 
 const driverInputSchema = z.object({

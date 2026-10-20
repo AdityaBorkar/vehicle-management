@@ -2,8 +2,9 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { gpsDevices } from "#/db-schema";
-import { db } from "#/lib/db/server";
+import { db } from "#/lib/db";
 import { authorized } from "../base";
+import { verifyVehicleOwnership } from "./vehicle-ownership";
 
 const gpsDeviceInputSchema = z.object({
 	deviceId: z.string().min(1),
@@ -14,7 +15,8 @@ const gpsDeviceInputSchema = z.object({
 
 export const list = authorized
 	.input(z.object({ vehicleId: z.number().int() }))
-	.handler(async ({ input }) => {
+	.handler(async ({ context, input }) => {
+		await verifyVehicleOwnership(input.vehicleId, context.user.id);
 		return db
 			.select()
 			.from(gpsDevices)
@@ -23,7 +25,8 @@ export const list = authorized
 
 export const create = authorized
 	.input(gpsDeviceInputSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ context, input }) => {
+		await verifyVehicleOwnership(input.vehicleId, context.user.id);
 		const [device] = await db.insert(gpsDevices).values(input).returning();
 		return device;
 	});
@@ -37,8 +40,14 @@ export const update = authorized
 			provider: z.string().optional(),
 		}),
 	)
-	.handler(async ({ input }) => {
+	.handler(async ({ context, input }) => {
 		const { id, ...data } = input;
+		const [existing] = await db
+			.select()
+			.from(gpsDevices)
+			.where(eq(gpsDevices.id, id));
+		if (!existing) return null;
+		await verifyVehicleOwnership(existing.vehicleId, context.user.id);
 		const [device] = await db
 			.update(gpsDevices)
 			.set({ ...data, updatedAt: new Date() })
@@ -49,7 +58,13 @@ export const update = authorized
 
 export const remove = authorized
 	.input(z.object({ id: z.number().int() }))
-	.handler(async ({ input }) => {
+	.handler(async ({ context, input }) => {
+		const [existing] = await db
+			.select()
+			.from(gpsDevices)
+			.where(eq(gpsDevices.id, input.id));
+		if (!existing) return null;
+		await verifyVehicleOwnership(existing.vehicleId, context.user.id);
 		const [device] = await db
 			.delete(gpsDevices)
 			.where(eq(gpsDevices.id, input.id))

@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Car } from "lucide-react";
 import { useId, useState } from "react";
 
+import { ThemeToggle } from "#/components/theme-toggle";
 import { Button } from "#/components/ui/button";
 import {
 	Card,
@@ -13,9 +14,10 @@ import {
 } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
-import { authClient } from "#/lib/auth/client";
-import { isValidPhoneNumber, normalizePhoneNumber } from "#/lib/phone";
+import { authClient } from "#/lib/auth-client";
+import { isValidPhoneNumber, normalizePhoneNumber } from "#/lib/utils";
 import { getSession } from "./api/-auth";
+import { getDevOtpCode } from "./api/-dev";
 
 export const Route = createFileRoute("/")({
 	beforeLoad: async () => {
@@ -61,6 +63,43 @@ function LoginPage() {
 		}
 	}
 
+	async function handleDevLogin() {
+		setError("");
+		const normalizedPhone = normalizePhoneNumber(phoneNumber);
+		if (!isValidPhoneNumber(normalizedPhone)) {
+			setError("Enter a valid phone number first.");
+			return;
+		}
+		setLoading(true);
+		try {
+			const sent = await authClient.phoneNumber.sendOtp({
+				phoneNumber: normalizedPhone,
+			});
+			if (sent.error) {
+				setError(sent.error.message ?? "Failed to send OTP");
+				return;
+			}
+			const { code: devCode } = await getDevOtpCode({
+				data: { phoneNumber: normalizedPhone },
+			});
+			const verified = await authClient.phoneNumber.verify({
+				code: devCode,
+				phoneNumber: normalizedPhone,
+			});
+			if (verified.error) {
+				setError(verified.error.message ?? "Verification failed");
+				return;
+			}
+			window.location.href = "/";
+		} catch (err) {
+			setError(
+				err instanceof Error ? err.message : "An unexpected error occurred",
+			);
+		} finally {
+			setLoading(false);
+		}
+	}
+
 	async function handleVerifyOtp(e: React.FormEvent) {
 		e.preventDefault();
 		setError("");
@@ -95,7 +134,8 @@ function LoginPage() {
 	}
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+		<div className="relative flex min-h-screen items-center justify-center bg-muted/30 p-4">
+			<ThemeToggle className="absolute top-4 right-4" />
 			<Card className="w-full max-w-sm shadow-lg">
 				<CardHeader className="text-center">
 					<div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -171,10 +211,21 @@ function LoginPage() {
 								/>
 							</div>
 						</CardContent>
-						<CardFooter>
+						<CardFooter className="flex-col gap-2">
 							<Button className="w-full" disabled={loading} type="submit">
 								{loading ? "Sending..." : "Send OTP"}
 							</Button>
+							{import.meta.env.DEV ? (
+								<Button
+									className="w-full"
+									disabled={loading}
+									onClick={() => void handleDevLogin()}
+									type="button"
+									variant="secondary"
+								>
+									{loading ? "Working..." : "Dev login (autofill OTP)"}
+								</Button>
+							) : null}
 						</CardFooter>
 					</form>
 				)}

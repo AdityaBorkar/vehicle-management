@@ -36,7 +36,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
-import { orpc } from "#/lib/orpc-query";
+import { orpc } from "#/lib/rpc";
 
 function DriversPage() {
 	const uid = useId();
@@ -128,12 +128,14 @@ function DriversPage() {
 					}}
 					open={open}
 				>
-					<DialogTrigger>
-						<Button>
-							<Plus className="mr-2 h-4 w-4" />
-							Add Driver
-						</Button>
-					</DialogTrigger>
+					<DialogTrigger
+						render={
+							<Button type="button">
+								<Plus className="mr-2 h-4 w-4" />
+								Add Driver
+							</Button>
+						}
+					/>
 					<DialogContent className="sm:max-w-md">
 						<DialogHeader>
 							<DialogTitle>
@@ -235,11 +237,14 @@ function DriversPage() {
 									<TableCell>{d.phoneNumber || "—"}</TableCell>
 									<TableCell>
 										<DropdownMenu>
-											<DropdownMenuTrigger>
-												<Button size="icon-xs" type="button" variant="ghost">
-													<MoreHorizontal className="h-4 w-4" />
-												</Button>
-											</DropdownMenuTrigger>
+											<DropdownMenuTrigger
+												aria-label={`Actions for ${d.name}`}
+												render={
+													<Button size="icon-xs" type="button" variant="ghost">
+														<MoreHorizontal className="h-4 w-4" />
+													</Button>
+												}
+											/>
 											<DropdownMenuContent align="end">
 												<DropdownMenuItem onClick={() => handleEdit(d)}>
 													<Pencil className="mr-2 h-4 w-4" />

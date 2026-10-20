@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "#/components/ui/badge";
-import { Button } from "#/components/ui/button";
+import { Button, buttonVariants } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import {
 	Dialog,
@@ -33,7 +33,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
-import { orpc } from "#/lib/orpc-query";
+import { orpc } from "#/lib/rpc";
 
 export const Route = createFileRoute("/(app)/drivers/$driverId")({
 	component: DriverDetailPage,
@@ -83,10 +83,12 @@ function DriverDetailPage() {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<Link to="/drivers">
-						<Button size="icon" type="button" variant="ghost">
-							<ArrowLeft className="h-4 w-4" />
-						</Button>
+					<Link
+						aria-label="Back to drivers"
+						className={buttonVariants({ size: "icon", variant: "ghost" })}
+						to="/drivers"
+					>
+						<ArrowLeft className="h-4 w-4" />
 					</Link>
 					<h1 className="font-bold text-2xl">{driver.name}</h1>
 					{driver.phoneNumber && (
@@ -147,6 +149,7 @@ function DriverInfoCard({
 				<CardTitle className="text-base">Driver Info</CardTitle>
 				{!editing && (
 					<Button
+						aria-label="Edit driver info"
 						onClick={() => setEditing(true)}
 						size="icon-xs"
 						type="button"
@@ -301,6 +304,7 @@ function AadharCardSection({
 					{aadharCard && (
 						<>
 							<Button
+								aria-label="Edit Aadhar card"
 								onClick={() => setOpen(true)}
 								size="icon-xs"
 								type="button"
@@ -309,6 +313,7 @@ function AadharCardSection({
 								<Pencil className="h-4 w-4" />
 							</Button>
 							<Button
+								aria-label="Remove Aadhar card"
 								onClick={() => removeMutation.mutate({ id: aadharCard.id })}
 								size="icon-xs"
 								type="button"
@@ -594,6 +599,7 @@ function LicenseCard({
 				</div>
 				<div className="flex gap-1">
 					<Button
+						aria-label={`Edit license ${license.licenseNumber}`}
 						onClick={() => setEditOpen(true)}
 						size="icon-xs"
 						type="button"
@@ -602,6 +608,7 @@ function LicenseCard({
 						<Pencil className="h-4 w-4" />
 					</Button>
 					<Button
+						aria-label={`Delete license ${license.licenseNumber}`}
 						onClick={() => removeMutation.mutate({ id: license.id })}
 						size="icon-xs"
 						type="button"
@@ -657,6 +664,7 @@ function LicenseCard({
 									</TableCell>
 									<TableCell>
 										<Button
+											aria-label={`Remove vehicle class ${vc.vehicleClass}`}
 											onClick={() => removeClassMutation.mutate({ id: vc.id })}
 											size="icon-xs"
 											type="button"
@@ -858,12 +866,14 @@ function AddLicenseDialog({ driverId }: { driverId: number }) {
 
 	return (
 		<Dialog onOpenChange={setOpen} open={open}>
-			<DialogTrigger>
-				<Button size="sm" type="button">
-					<Plus className="mr-2 h-4 w-4" />
-					Add License
-				</Button>
-			</DialogTrigger>
+			<DialogTrigger
+				render={
+					<Button size="sm" type="button">
+						<Plus className="mr-2 h-4 w-4" />
+						Add License
+					</Button>
+				}
+			/>
 			<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Add Driving License</DialogTitle>

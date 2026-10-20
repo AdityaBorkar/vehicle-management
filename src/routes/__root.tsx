@@ -5,15 +5,26 @@ import {
 	HeadContent,
 	Link,
 	Scripts,
+	useNavigate,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Car, Home, LogOut, Users } from "lucide-react";
+import {
+	Bell,
+	Car,
+	FileText,
+	Home,
+	LogOut,
+	Settings,
+	Users,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ThemeProvider } from "#/components/theme-provider";
+import { ThemeToggle } from "#/components/theme-toggle";
 // import PostHogProvider from "#/posthog/provider";
 import { Button } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
-import { authClient } from "#/lib/auth/client";
+import { authClient } from "#/lib/auth-client";
 import appCss from "./styles.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
@@ -32,14 +43,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
 			</head>
 			<body>
 				{/*<PostHogProvider>*/}
-				<AppShell>{children}</AppShell>
-				<Toaster />
+				<ThemeProvider>
+					<AppShell>{children}</AppShell>
+					<Toaster />
+				</ThemeProvider>
 				<TanStackDevtools
 					config={{ position: "bottom-right" }}
 					plugins={[
@@ -59,12 +72,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
 	const { data: session, isPending } = authClient.useSession();
 	const [hasSettled, setHasSettled] = useState(false);
+	const navigate = useNavigate();
 
 	useEffect(() => {
 		if (!isPending) {
 			setHasSettled(true);
 		}
 	}, [isPending]);
+
+	async function handleSignOut() {
+		await authClient.signOut();
+		await navigate({ to: "/" });
+	}
 
 	if (!hasSettled) {
 		return (
@@ -84,11 +103,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				<div className="flex h-14 items-center border-b px-4">
 					<Car className="mr-2 h-5 w-5 text-primary" />
 					<span className="font-semibold">Vahan</span>
+					<ThemeToggle className="ml-auto" />
 				</div>
 				<nav className="flex-1 space-y-1 p-3">
-					<NavLink icon={Home} label="Dashboard" to="/" />
+					<NavLink icon={Home} label="Dashboard" to="/dashboard" />
 					<NavLink icon={Car} label="Vehicles" to="/vehicles" />
 					<NavLink icon={Users} label="Drivers" to="/drivers" />
+					<NavLink icon={FileText} label="Documents" to="/documents" />
+					<NavLink icon={Bell} label="Calendar" to="/calendar" />
+					<NavLink icon={Settings} label="Settings" to="/settings/user" />
 				</nav>
 				<div className="border-t p-3">
 					<div className="mb-2 flex items-center gap-2">
@@ -106,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					</div>
 					<Button
 						className="w-full justify-start"
-						onClick={() => void authClient.signOut()}
+						onClick={() => void handleSignOut()}
 						size="sm"
 						type="button"
 						variant="ghost"
