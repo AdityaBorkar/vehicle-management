@@ -23,8 +23,43 @@ Ensure that all these logs, recordings are stored in the storage layer and can b
 
 ---
 
-DL
+Dark Mode
 
+Secure DB and infrastructure? Cloudflare Infra
+
+Re-fetch, refresh, and store the refresh status in the database
+
+Secure the logic behind it using workflow runs poweered by CLI for now.
+
+---
+
+CASHFREE
+
+API_EXPRESS
+
+BROWSER
+
+---
+
+Get Fitness Certificate Success APPL. NUM.
+
+Vehicle RC API @Rs. 3 at Cashfree
+GET VIN DETAILS / rc particulars
+- CHASSIS NO.??
+- ENGINE NO.??
+
+PRINT Slot Booking Letter
+- Chassis No.
+- Appointment No.
+- Permit No. & Validity
+- Fitness No. & Validity
+- Tax No. & Validity
+- Speed Governer No. & Speed Governer Manf.
+- VIN Details??
+
+---
+
+DL
 ---
 
 Get RC Particulars to get all details over the RC using OTP. Write a sync flow that triggers a OTP and ask user for the OTP, once entered it gets all the RC Particulars details and store it as a PDF and as well as strctuerd schema in the database.
@@ -48,7 +83,66 @@ PRINT Slot Booking Letter
 - Speed Governer No. & Speed Governer Manf.
 - VIN Details??
 
+Know Your Vehicle Details
+RC
+
+Print PUCC
+
+Green Tax
+One Time Tax
+
+SPEED GOVERNER??
+DL??
+PERMIT??
+GET INSURANCE FROM EMAIL!!
+HSRP??
+VLTD??
+
+Purchase Order??
+RTO Form 20??
+
+- FASTag History
+- GPS
+- TOLL CARD
+- DIESEL TRACKER
+
+- Challan (Maha, Central)
+
 ---
+
+VIEW UPLOADED DOCUMENTS??
+
+---
+
+- Routes configure
+- CRUD Interface
+- Link everything (Relations)
+- Cron Jobs and Reminders
+
+1. CRUD Vehicles and get RTO History.
+2. CRUD Driving Licenses
+3. Link GPS and FASTag and Diesel Card
+4. Settings with preferences (Group Invitation Link to Join)
+5. Group Command: @Vahan MH 01 CR 7464 (Share link that is valid for 24 hours)
+6. Reminders with WHATSAPP = EVERYDAY-UNTIL-REFRESHED-D0 / D-1 / D-3 / D-7 / D-14 (Everyday 8:30 AM)
+
+- Link GPS
+- Manage all kinds of documents
+- Manage appointments for Permit and Fitness
+- Refresh FASTag History
+
+- WhatsApp OTP Authentication
+- WhatsApp OTP Auth & Groups & Templates
+- Cron Jobs
+- Workflow Management
+
+- Book HSRP Number Plate
+- FEAT: ADD ADDRESS TO GOOGLE MAPS DETECTION ALGORITHM
+- Generate Work Order or Sale Agreement
+
+- Battle Tested Integrations
+  - Tables
+  - Forms
 
 - solve-grecaptcha.ts
 - Challan (Maha, Central)

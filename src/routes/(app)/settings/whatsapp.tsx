@@ -58,7 +58,7 @@ function WhatsappSettingsPage() {
 				<p className="eyebrow">Coming soon</p>
 				<p className="mt-2 max-w-lg text-muted-foreground text-sm">
 					WhatsApp reminders and group commands are not configured yet. Document
-					expiry reminders currently appear on the Dashboard.
+					expiry reminders currently appear on the Dashboard and Calendar.
 				</p>
 			</div>
 		</div>

@@ -3,7 +3,13 @@ import { db } from "#/lib/db";
 
 /**
  * Snapshot a replaced value into the documents vault as history.
+ * The row is written `superseded` straight away — it preserves the
+ * previous issue/expiry dates and is never deleted or updated again.
  * Rows are write-once and never deleted.
+ *
+ * Kept in its own module (outside the oRPC router namespaces) because
+ * every export of a `./procedures/*` module registered in the router
+ * must be a procedure.
  */
 export async function snapshotSupersededDocument(input: {
 	userId: string;

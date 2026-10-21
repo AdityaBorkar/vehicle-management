@@ -6,6 +6,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 		<NextThemesProvider
 			attribute="class"
 			defaultTheme="system"
+			disableTransitionOnChange
 			enableSystem
 			storageKey="vahan-theme"
 		>

@@ -16,6 +16,7 @@ import { CenteredLoader } from "#/components/centered-loader";
 import { SiteFooter } from "#/components/site-footer";
 import { SiteHeader } from "#/components/site-header";
 import { ThemeProvider } from "#/components/theme-provider";
+// import PostHogProvider from "#/posthog/provider";
 import { Button, buttonVariants } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
 import { authClient } from "#/lib/auth-client";
@@ -116,10 +117,12 @@ function RootDocument({ children }: { children: ReactNode }): ReactNode {
 				<a className="skip-link" href={`#${MAIN_CONTENT_ID}`}>
 					Skip to content
 				</a>
+				{/*<PostHogProvider>*/}
 				<ThemeProvider>
 					<AppShell>{children}</AppShell>
 					<Toaster />
 				</ThemeProvider>
+				{/*</PostHogProvider>*/}
 				<TanStackDevtools
 					config={{ position: "bottom-right" }}
 					plugins={[

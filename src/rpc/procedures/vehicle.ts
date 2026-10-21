@@ -23,6 +23,7 @@ const vehicleFields = {
 	model: z.string().optional(),
 	pollutionValidTill: z.coerce.date().optional(),
 	registrationDate: z.coerce.date().optional(),
+	registrationNumber: z.string().min(1),
 	vin: z.string().optional(),
 	year: z.number().int().min(1900).max(2100).optional(),
 };
@@ -210,12 +211,15 @@ function normalizeFuelType(
 		return "EV";
 	// Hybrid maps to Other: no dedicated hybrid fuel type in the schema.
 	if (v.includes("hybrid") || v.includes("lpg")) return "Other";
+	if (v === "other") return "Other";
 	return null;
 }
 
 function toISODate(value: Date | null | undefined): string | null {
-	if (!value || Number.isNaN(value.getTime())) return null;
-	return value.toISOString().slice(0, 10);
+	if (!value) return null;
+	const date = value instanceof Date ? value : new Date(value);
+	if (Number.isNaN(date.getTime())) return null;
+	return date.toISOString().slice(0, 10);
 }
 
 function asErrorRecord(value: unknown): Record<string, unknown> | null {
@@ -378,6 +382,9 @@ export const lookup = protectedProcedure
 			}
 		});
 		if (existing) {
+			console.log(
+				`[vehicle.lookup] served from vehicles table vin=${normalized} vehicleId=${existing.id}`,
+			);
 			return {
 				color: existing.color,
 				fetchedAt: new Date().toISOString(),
@@ -408,6 +415,9 @@ export const lookup = protectedProcedure
 			.orderBy(desc(externalApiCalls.id))
 			.limit(1);
 		if (cached?.response) {
+			console.log(
+				`[vehicle.lookup] served from external_api_calls cache vin=${normalized} external_api_calls.id=${cached.id}`,
+			);
 			const fields = mapRcResponseToLookup(cached.response);
 			return {
 				color: fields.color,

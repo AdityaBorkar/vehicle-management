@@ -21,6 +21,7 @@ import { authClient } from "#/lib/auth-client";
 import { MAIN_CONTENT_ID } from "#/lib/constants";
 import { isValidPhoneNumber, normalizePhoneNumber } from "#/lib/utils";
 import { getSession } from "./api/-auth";
+import { getDevOtpCode } from "./api/-dev";
 
 export const Route = createFileRoute("/")({
 	beforeLoad: async () => {
@@ -122,6 +123,43 @@ function LoginPage(): ReactNode {
 			}
 		} catch {
 			setError("An unexpected error occurred");
+		} finally {
+			setLoading(false);
+		}
+	}
+
+	async function handleDevLogin(): Promise<void> {
+		setError("");
+		const normalizedPhone = validatePhone(phoneNumber);
+		if (!normalizedPhone) {
+			setError("Enter a valid phone number first.");
+			return;
+		}
+		setLoading(true);
+		try {
+			const sent = await authClient.phoneNumber.sendOtp({
+				phoneNumber: normalizedPhone,
+			});
+			if (sent.error) {
+				setError(sent.error.message ?? "Failed to send OTP");
+				return;
+			}
+			const { code: devCode } = await getDevOtpCode({
+				data: { phoneNumber: normalizedPhone },
+			});
+			const verified = await authClient.phoneNumber.verify({
+				code: devCode,
+				phoneNumber: normalizedPhone,
+			});
+			if (verified.error) {
+				setError(verified.error.message ?? "Verification failed");
+				return;
+			}
+			reloadHome();
+		} catch (err) {
+			setError(
+				err instanceof Error ? err.message : "An unexpected error occurred",
+			);
 		} finally {
 			setLoading(false);
 		}
@@ -340,6 +378,18 @@ function LoginPage(): ReactNode {
 											</>
 										)}
 									</Button>
+									{import.meta.env.DEV ? (
+										<Button
+											className="h-11 w-full text-[15px]"
+											disabled={loading}
+											onClick={() => void handleDevLogin()}
+											size="lg"
+											type="button"
+											variant="secondary"
+										>
+											{loading ? "Working…" : "Dev login (autofill OTP)"}
+										</Button>
+									) : null}
 								</form>
 							)}
 

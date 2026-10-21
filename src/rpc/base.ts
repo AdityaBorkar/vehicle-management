@@ -31,7 +31,7 @@ export const authMiddleware = base.middleware(async ({ context, next }) => {
 		headers: context.headers,
 	});
 
-	if (!session?.user) {
+	if (!session?.session || !session?.user) {
 		throw new ORPCError("UNAUTHORIZED", {
 			message: "You must be logged in to perform this action",
 		});
@@ -48,3 +48,8 @@ export const authMiddleware = base.middleware(async ({ context, next }) => {
 export const publicProcedure = base.use(loggingMiddleware);
 
 export const protectedProcedure = publicProcedure.use(authMiddleware);
+
+// Alias kept for the document-management / APIExpress-lookup side of the
+// merge, which names the authed procedure `authorized`. Same middleware,
+// minus the logging wrapper.
+export const authorized = base.use(authMiddleware);
