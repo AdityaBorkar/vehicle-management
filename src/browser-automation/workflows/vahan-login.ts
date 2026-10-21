@@ -70,6 +70,33 @@ async function enterRegistrationNumber(
 	}
 }
 
+/**
+ * Click that survives overlay interception. Vahan's layout (and headless
+ * viewports in particular) often leaves a sibling div covering the button,
+ * so Playwright's hit-target check never passes. Fall back to a synthetic
+ * click, which still fires the JSF `onclick` ajax handler. The caller's
+ * next wait (dialog/panel appearance) validates the click actually worked.
+ */
+async function resilientClick(
+	page: Page,
+	selector: string,
+	timeoutMs: number,
+): Promise<void> {
+	const locator = page.locator(selector);
+	await locator.waitFor({ state: "visible", timeout: timeoutMs });
+	await locator.scrollIntoViewIfNeeded().catch(() => {});
+	try {
+		await locator.click({ timeout: Math.min(timeoutMs, 15_000) });
+		return;
+	} catch (err) {
+		await locator
+			.evaluate((el) => (el as HTMLElement).click())
+			.catch(() => {
+				throw err;
+			});
+	}
+}
+
 async function acceptTnCAndProceed(
 	page: Page,
 	timeoutMs: number,
@@ -99,7 +126,7 @@ async function acceptTnCAndProceed(
 		{ timeout: timeoutMs },
 	);
 
-	await page.locator("#proccedHomeButtonId").click({ timeout: timeoutMs });
+	await resilientClick(page, "#proccedHomeButtonId", timeoutMs);
 }
 
 async function confirmFacelessDialog(
@@ -111,7 +138,11 @@ async function confirmFacelessDialog(
 		.waitFor({ state: "visible", timeout: timeoutMs });
 	const proceed = page.locator('#facelesslist button:has-text("Proceed")');
 	await proceed.waitFor({ state: "visible", timeout: timeoutMs });
-	await proceed.click({ timeout: timeoutMs });
+	await resilientClick(
+		page,
+		'#facelesslist button:has-text("Proceed")',
+		timeoutMs,
+	);
 	await page
 		.waitForLoadState("networkidle", { timeout: timeoutMs })
 		.catch(() => {});

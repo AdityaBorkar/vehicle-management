@@ -9,11 +9,11 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import {
-	Bell,
 	Car,
 	FileText,
 	Home,
 	LogOut,
+	QrCode,
 	Settings,
 	Users,
 } from "lucide-react";
@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }): ReactNode {
 					<NavLink icon={Car} label="Vehicles" to="/vehicles" />
 					<NavLink icon={Users} label="Drivers" to="/drivers" />
 					<NavLink icon={FileText} label="Documents" to="/documents" />
-					<NavLink icon={Bell} label="Calendar" to="/calendar" />
+					<NavLink icon={QrCode} label="UPI QR" to="/upi" />
 					<NavLink icon={Settings} label="Settings" to="/settings/user" />
 				</nav>
 				<div className="border-t p-3">

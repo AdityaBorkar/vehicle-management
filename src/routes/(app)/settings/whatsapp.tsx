@@ -47,7 +47,7 @@ function WhatsappSettingsPage() {
 			<Card>
 				<CardContent className="py-6 text-muted-foreground text-sm">
 					WhatsApp reminders and group commands are not configured yet. Document
-					expiry reminders currently appear under Calendar.
+					expiry reminders currently appear on the Dashboard.
 				</CardContent>
 			</Card>
 		</div>

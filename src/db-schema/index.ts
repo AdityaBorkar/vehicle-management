@@ -24,3 +24,5 @@ export { externalApiCalls } from "./external-api-call";
 export { reminders } from "./reminder";
 export { vehicles } from "./vehicle";
 export { dieselCards, fastags, gpsDevices } from "./vehicle-device";
+export { vehicleTransactions } from "./vehicle-transaction";
+export { workflowRuns } from "./workflow-run";

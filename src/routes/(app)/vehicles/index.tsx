@@ -18,6 +18,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { PuccCertificateMenuItem } from "#/components/pucc-certificate-button";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
@@ -574,6 +575,11 @@ function VehiclesPage() {
 													<Pencil className="mr-2 h-4 w-4" />
 													Edit
 												</DropdownMenuItem>
+												<PuccCertificateMenuItem
+													registrationNumber={v.registrationNumber}
+													vehicleId={v.id}
+													vin={v.vin}
+												/>
 												<DropdownMenuItem
 													className="text-destructive"
 													onClick={() => deleteMutation.mutate({ id: v.id })}

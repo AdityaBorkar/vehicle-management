@@ -1,13 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { PuccCertificateButton } from "#/components/pucc-certificate-button";
+import { TransactionHistoryTab } from "#/components/transaction-history-tab";
 import { Badge } from "#/components/ui/badge";
 import { Button, buttonVariants } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { orpc } from "#/lib/rpc";
+import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/(app)/vehicles/$vehicleId")({
 	component: VehicleDetailPage,
@@ -16,6 +20,9 @@ export const Route = createFileRoute("/(app)/vehicles/$vehicleId")({
 function VehicleDetailPage() {
 	const vehicleId = Number(Route.useParams().vehicleId);
 	const queryClient = useQueryClient();
+	const [activeTab, setActiveTab] = useState<"overview" | "transactions">(
+		"overview",
+	);
 
 	const { data: vehicle, isLoading } = useQuery(
 		orpc.vehicle.getById.queryOptions({ input: { id: vehicleId } }),
@@ -74,156 +81,211 @@ function VehicleDetailPage() {
 						<Badge variant="secondary">{vehicle.fuelType}</Badge>
 					)}
 				</div>
-				<Button
-					disabled={deleteMutation.isPending}
-					onClick={() => deleteMutation.mutate({ id: vehicle.id })}
-					size="sm"
+				<div className="flex items-center gap-2">
+					<PuccCertificateButton
+						registrationNumber={vehicle.registrationNumber}
+						vehicleId={vehicle.id}
+						vin={vehicle.vin}
+					/>
+					<Button
+						disabled={deleteMutation.isPending}
+						onClick={() => deleteMutation.mutate({ id: vehicle.id })}
+						size="sm"
+						type="button"
+						variant="destructive"
+					>
+						<Trash2 className="mr-2 h-4 w-4" />
+						Delete
+					</Button>
+				</div>
+			</div>
+
+			<div className="flex items-center gap-1 rounded-lg bg-muted p-1 text-sm">
+				<button
+					className={cn(
+						"rounded-md px-3 py-1.5 font-medium",
+						activeTab === "overview"
+							? "bg-background shadow-sm"
+							: "text-muted-foreground hover:text-foreground",
+					)}
+					onClick={() => setActiveTab("overview")}
 					type="button"
-					variant="destructive"
 				>
-					<Trash2 className="mr-2 h-4 w-4" />
-					Delete
-				</Button>
+					Overview
+				</button>
+				<button
+					className={cn(
+						"rounded-md px-3 py-1.5 font-medium",
+						activeTab === "transactions"
+							? "bg-background shadow-sm"
+							: "text-muted-foreground hover:text-foreground",
+					)}
+					onClick={() => setActiveTab("transactions")}
+					type="button"
+				>
+					Transaction History
+				</button>
 			</div>
 
-			<div className="grid gap-6 md:grid-cols-2">
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base">Vehicle Details</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2 text-sm">
-						<DetailRow
-							label="Make / Model"
-							value={[vehicle.make, vehicle.model].filter(Boolean).join(" ")}
-						/>
-						<DetailRow label="Year" value={vehicle.year?.toString() ?? null} />
-						<DetailRow label="Color" value={vehicle.color} />
-						<DetailRow label="VIN / Chassis Number" value={vehicle.vin} />
-						<DetailRow
-							label="Registration Date"
-							value={formatDate(vehicle.registrationDate)}
-						/>
-					</CardContent>
-				</Card>
+			{activeTab === "transactions" ? (
+				<TransactionHistoryTab
+					registrationNumber={vehicle.registrationNumber}
+					vehicleId={vehicle.id}
+				/>
+			) : (
+				<div className="grid gap-6 md:grid-cols-2">
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base">Vehicle Details</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-2 text-sm">
+							<DetailRow
+								label="Make / Model"
+								value={[vehicle.make, vehicle.model].filter(Boolean).join(" ")}
+							/>
+							<DetailRow
+								label="Year"
+								value={vehicle.year?.toString() ?? null}
+							/>
+							<DetailRow label="Color" value={vehicle.color} />
+							<DetailRow label="VIN / Chassis Number" value={vehicle.vin} />
+							<DetailRow
+								label="Registration Date"
+								value={formatDate(vehicle.registrationDate)}
+							/>
+						</CardContent>
+					</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base">Validity Dates</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2 text-sm">
-						<DetailRow
-							badge={
-								vehicle.fitnessValidTill ? (
-									<ExpiryBadge date={vehicle.fitnessValidTill} />
-								) : undefined
-							}
-							label="Fitness"
-							value={formatDate(vehicle.fitnessValidTill)}
-						/>
-						<DetailRow
-							badge={
-								vehicle.insuranceValidTill ? (
-									<ExpiryBadge date={vehicle.insuranceValidTill} />
-								) : undefined
-							}
-							label="Insurance"
-							value={formatDate(vehicle.insuranceValidTill)}
-						/>
-						<DetailRow
-							badge={
-								vehicle.pollutionValidTill ? (
-									<ExpiryBadge date={vehicle.pollutionValidTill} />
-								) : undefined
-							}
-							label="Pollution"
-							value={formatDate(vehicle.pollutionValidTill)}
-						/>
-					</CardContent>
-				</Card>
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base">Validity Dates</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-2 text-sm">
+							<DetailRow
+								badge={
+									vehicle.fitnessValidTill ? (
+										<ExpiryBadge date={vehicle.fitnessValidTill} />
+									) : undefined
+								}
+								label="Fitness"
+								value={formatDate(vehicle.fitnessValidTill)}
+							/>
+							<DetailRow
+								badge={
+									vehicle.insuranceValidTill ? (
+										<ExpiryBadge date={vehicle.insuranceValidTill} />
+									) : undefined
+								}
+								label="Insurance"
+								value={formatDate(vehicle.insuranceValidTill)}
+							/>
+							<DetailRow
+								badge={
+									vehicle.pollutionValidTill ? (
+										<ExpiryBadge date={vehicle.pollutionValidTill} />
+									) : undefined
+								}
+								label="Pollution"
+								value={formatDate(vehicle.pollutionValidTill)}
+							/>
+						</CardContent>
+					</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base">GPS Devices</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{gpsDevices && gpsDevices.length > 0 ? (
-							<div className="space-y-2 text-sm">
-								{gpsDevices.map((d) => (
-									<div className="flex items-center justify-between" key={d.id}>
-										<span>{d.deviceId}</span>
-										<div className="flex items-center gap-2">
-											{d.provider && (
-												<span className="text-muted-foreground">
-													{d.provider}
-												</span>
-											)}
-											<Badge variant={d.isActive ? "default" : "secondary"}>
-												{d.isActive ? "Active" : "Inactive"}
-											</Badge>
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base">GPS Devices</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{gpsDevices && gpsDevices.length > 0 ? (
+								<div className="space-y-2 text-sm">
+									{gpsDevices.map((d) => (
+										<div
+											className="flex items-center justify-between"
+											key={d.id}
+										>
+											<span>{d.deviceId}</span>
+											<div className="flex items-center gap-2">
+												{d.provider && (
+													<span className="text-muted-foreground">
+														{d.provider}
+													</span>
+												)}
+												<Badge variant={d.isActive ? "default" : "secondary"}>
+													{d.isActive ? "Active" : "Inactive"}
+												</Badge>
+											</div>
 										</div>
-									</div>
-								))}
-							</div>
-						) : (
-							<p className="text-muted-foreground text-sm">
-								No GPS devices linked
-							</p>
-						)}
-					</CardContent>
-				</Card>
+									))}
+								</div>
+							) : (
+								<p className="text-muted-foreground text-sm">
+									No GPS devices linked
+								</p>
+							)}
+						</CardContent>
+					</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base">FASTag & Diesel Card</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						{fastags && fastags.length > 0 ? (
-							<div className="space-y-2 text-sm">
-								{fastags.map((f) => (
-									<div className="flex items-center justify-between" key={f.id}>
-										<span>FASTag: {f.tagId}</span>
-										<div className="flex items-center gap-2">
-											{f.bankWallet && (
-												<span className="text-muted-foreground">
-													{f.bankWallet}
-												</span>
-											)}
-											<Badge variant={f.isActive ? "default" : "secondary"}>
-												{f.isActive ? "Active" : "Inactive"}
-											</Badge>
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base">FASTag & Diesel Card</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							{fastags && fastags.length > 0 ? (
+								<div className="space-y-2 text-sm">
+									{fastags.map((f) => (
+										<div
+											className="flex items-center justify-between"
+											key={f.id}
+										>
+											<span>FASTag: {f.tagId}</span>
+											<div className="flex items-center gap-2">
+												{f.bankWallet && (
+													<span className="text-muted-foreground">
+														{f.bankWallet}
+													</span>
+												)}
+												<Badge variant={f.isActive ? "default" : "secondary"}>
+													{f.isActive ? "Active" : "Inactive"}
+												</Badge>
+											</div>
 										</div>
-									</div>
-								))}
-							</div>
-						) : (
-							<p className="text-muted-foreground text-sm">No FASTag linked</p>
-						)}
-						{dieselCards && dieselCards.length > 0 ? (
-							<div className="space-y-2 text-sm">
-								{dieselCards.map((c) => (
-									<div className="flex items-center justify-between" key={c.id}>
-										<span>Diesel Card: {c.cardNumber}</span>
-										<div className="flex items-center gap-2">
-											{c.provider && (
-												<span className="text-muted-foreground">
-													{c.provider}
-												</span>
-											)}
-											<Badge variant={c.isActive ? "default" : "secondary"}>
-												{c.isActive ? "Active" : "Inactive"}
-											</Badge>
+									))}
+								</div>
+							) : (
+								<p className="text-muted-foreground text-sm">
+									No FASTag linked
+								</p>
+							)}
+							{dieselCards && dieselCards.length > 0 ? (
+								<div className="space-y-2 text-sm">
+									{dieselCards.map((c) => (
+										<div
+											className="flex items-center justify-between"
+											key={c.id}
+										>
+											<span>Diesel Card: {c.cardNumber}</span>
+											<div className="flex items-center gap-2">
+												{c.provider && (
+													<span className="text-muted-foreground">
+														{c.provider}
+													</span>
+												)}
+												<Badge variant={c.isActive ? "default" : "secondary"}>
+													{c.isActive ? "Active" : "Inactive"}
+												</Badge>
+											</div>
 										</div>
-									</div>
-								))}
-							</div>
-						) : (
-							<p className="text-muted-foreground text-sm">
-								No diesel card linked
-							</p>
-						)}
-					</CardContent>
-				</Card>
-			</div>
+									))}
+								</div>
+							) : (
+								<p className="text-muted-foreground text-sm">
+									No diesel card linked
+								</p>
+							)}
+						</CardContent>
+					</Card>
+				</div>
+			)}
 		</div>
 	);
 }
