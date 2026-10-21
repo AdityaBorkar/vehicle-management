@@ -1,12 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
 import { Badge } from "#/components/ui/badge";
 import { Button, buttonVariants } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "#/components/ui/table";
 import { orpc } from "#/lib/rpc";
 
 export const Route = createFileRoute("/(app)/vehicles/$vehicleId")({
@@ -29,6 +38,12 @@ function VehicleDetailPage() {
 	const { data: dieselCards } = useQuery(
 		orpc.dieselCard.list.queryOptions({ input: { vehicleId } }),
 	);
+	const { data: allDocuments } = useQuery(orpc.document.list.queryOptions());
+
+	const complianceDocs = useMemo(
+		() => buildComplianceDocs(vehicle, allDocuments, vehicleId),
+		[vehicle, allDocuments, vehicleId],
+	);
 
 	const deleteMutation = useMutation(
 		orpc.vehicle.remove.mutationOptions({
@@ -46,44 +61,59 @@ function VehicleDetailPage() {
 
 	if (!vehicle) {
 		return (
-			<div className="py-12 text-center">
-				<p className="text-muted-foreground">Vehicle not found</p>
+			<div className="flex min-h-[55vh] flex-col items-center justify-center px-6 text-center">
+				<p className="eyebrow">Not found</p>
+				<h1 className="display-sm mt-4">Vehicle not found.</h1>
+				<p className="lede mt-4">
+					This record may have been removed, or it belongs to another fleet.
+				</p>
 				<Link
-					className="mt-2 inline-block text-primary text-sm hover:underline"
+					className={buttonVariants({ className: "mt-8", variant: "outline" })}
 					to="/vehicles"
 				>
-					Back to Vehicles
+					<ArrowLeft className="size-4" />
+					Back to vehicles
 				</Link>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-3">
-					<Link
-						aria-label="Back to vehicles"
-						className={buttonVariants({ size: "icon", variant: "ghost" })}
-						to="/vehicles"
-					>
-						<ArrowLeft className="h-4 w-4" />
-					</Link>
-					<h1 className="font-bold text-2xl">{vehicle.registrationNumber}</h1>
-					{vehicle.fuelType && (
-						<Badge variant="secondary">{vehicle.fuelType}</Badge>
-					)}
-				</div>
-				<Button
-					disabled={deleteMutation.isPending}
-					onClick={() => deleteMutation.mutate({ id: vehicle.id })}
-					size="sm"
-					type="button"
-					variant="destructive"
+		<div className="space-y-8">
+			<div className="page-enter border-b border-border pb-8">
+				<Link
+					className="eyebrow inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+					to="/vehicles"
 				>
-					<Trash2 className="mr-2 h-4 w-4" />
-					Delete
-				</Button>
+					<ArrowLeft className="size-3.5" />
+					Vehicles
+				</Link>
+				<div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+					<div className="flex flex-wrap items-center gap-3">
+						<h1 className="page-title font-mono tracking-[-0.06em]">
+							{vehicle.registrationNumber}
+						</h1>
+						{vehicle.fuelType && (
+							<Badge variant="secondary">{vehicle.fuelType}</Badge>
+						)}
+					</div>
+					<Button
+						className="border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+						disabled={deleteMutation.isPending}
+						onClick={() => deleteMutation.mutate({ id: vehicle.id })}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						<Trash2 className="size-4" />
+						Delete vehicle
+					</Button>
+				</div>
+				<p className="mt-3 text-muted-foreground text-sm">
+					{[vehicle.make, vehicle.model, vehicle.year]
+						.filter(Boolean)
+						.join(" · ") || "Vehicle record"}
+				</p>
 			</div>
 
 			<div className="grid gap-6 md:grid-cols-2">
@@ -224,8 +254,143 @@ function VehicleDetailPage() {
 					</CardContent>
 				</Card>
 			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">
+						Documents — Vehicle Compliance
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>ID</TableHead>
+								<TableHead>Name</TableHead>
+								<TableHead>Valid From</TableHead>
+								<TableHead>Valid Till</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{complianceDocs.map((doc) => (
+								<TableRow key={doc.kind}>
+									<TableCell>
+										{doc.applicable ? (
+											(doc.documentNumber ?? (
+												<span className="text-muted-foreground">—</span>
+											))
+										) : (
+											<span className="text-muted-foreground">
+												Not Applicable
+											</span>
+										)}
+									</TableCell>
+									<TableCell className="font-medium">{doc.name}</TableCell>
+									<TableCell>{formatDate(doc.issueDate) ?? "—"}</TableCell>
+									<TableCell>
+										<div className="flex items-center gap-2">
+											<span>{formatDate(doc.expiryDate) ?? "—"}</span>
+											{doc.applicable && doc.expiryDate ? (
+												<ExpiryBadge date={doc.expiryDate} />
+											) : null}
+										</div>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</CardContent>
+			</Card>
 		</div>
 	);
+}
+
+const COMPLIANCE_DOCS = [
+	{ kind: "registration", name: "Registration Certificate (RC)" },
+	{ kind: "insurance", name: "Insurance" },
+	{ kind: "fitness", name: "Fitness Certificate" },
+	{ kind: "pollution", name: "Pollution (PUC)" },
+	{ kind: "permit", name: "Permit" },
+	{ kind: "tax", name: "Tax" },
+] as const;
+
+type ComplianceKind = (typeof COMPLIANCE_DOCS)[number]["kind"];
+
+type ComplianceRow = {
+	kind: ComplianceKind;
+	name: string;
+	applicable: boolean;
+	documentNumber: string | null;
+	issueDate: Date | null;
+	expiryDate: Date | null;
+};
+
+function isComplianceApplicable(
+	kind: ComplianceKind,
+	vehicle: { fuelType?: string | null } | null | undefined,
+): boolean {
+	// EVs have no tailpipe emissions, so PUC does not apply.
+	if (kind === "pollution" && vehicle?.fuelType === "EV") return false;
+	return true;
+}
+
+function buildComplianceDocs(
+	vehicle:
+		| {
+				fuelType?: string | null;
+				registrationDate?: Date | null;
+				insuranceValidTill?: Date | null;
+				fitnessValidTill?: Date | null;
+				pollutionValidTill?: Date | null;
+		  }
+		| null
+		| undefined,
+	allDocuments:
+		| {
+				vehicleId: number | null;
+				kind: string;
+				status: string;
+				isCurrent: boolean;
+				source: string;
+				documentNumber: string | null;
+				issueDate: Date | null;
+				expiryDate: Date | null;
+		  }[]
+		| undefined,
+	vehicleId: number,
+): ComplianceRow[] {
+	const liveDates: Record<
+		ComplianceKind,
+		{ from: Date | null; till: Date | null }
+	> = {
+		fitness: { from: null, till: vehicle?.fitnessValidTill ?? null },
+		insurance: { from: null, till: vehicle?.insuranceValidTill ?? null },
+		permit: { from: null, till: null },
+		pollution: { from: null, till: vehicle?.pollutionValidTill ?? null },
+		registration: { from: vehicle?.registrationDate ?? null, till: null },
+		tax: { from: null, till: null },
+	};
+
+	return COMPLIANCE_DOCS.map(({ kind, name }) => {
+		const applicable = isComplianceApplicable(kind, vehicle);
+		const related = (allDocuments ?? []).filter(
+			(d) =>
+				d.vehicleId === vehicleId &&
+				d.kind === kind &&
+				d.isCurrent &&
+				d.status === "active",
+		);
+		const stored = related.find((d) => d.source === "stored") ?? related[0];
+		const live = liveDates[kind];
+		return {
+			applicable,
+			documentNumber: stored?.documentNumber ?? null,
+			expiryDate: stored?.expiryDate ?? live.till,
+			issueDate: stored?.issueDate ?? live.from,
+			kind,
+			name,
+		};
+	});
 }
 
 export function DetailRow({

@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MessageCircle, ShieldCheck } from "lucide-react";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { PageHeader } from "#/components/page-header";
+import { SettingsNav } from "#/components/settings-nav";
 import { Badge } from "#/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Card } from "#/components/ui/card";
 import { authClient } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/(app)/settings/whatsapp")({
@@ -20,36 +22,45 @@ function WhatsappSettingsPage() {
 	const phoneNumber = session?.user?.phoneNumber;
 
 	return (
-		<div className="space-y-6">
-			<h1 className="font-bold text-2xl">WhatsApp</h1>
-			<Card>
-				<CardHeader className="flex flex-row items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-						<MessageCircle className="h-5 w-5 text-primary" />
+		<div className="space-y-8">
+			<PageHeader
+				description="The number reminders will use, and the state of WhatsApp delivery for this fleet."
+				eyebrow="Account / WhatsApp"
+				title="WhatsApp"
+			/>
+			<SettingsNav />
+
+			<Card className="max-w-3xl">
+				<div className="flex items-center gap-4 px-5">
+					<div className="grid size-11 place-items-center rounded-full border border-border bg-muted/40">
+						<MessageCircle className="size-5" strokeWidth={1.6} />
 					</div>
-					<div>
-						<CardTitle className="text-base">Login number</CardTitle>
+					<div className="min-w-0 flex-1">
+						<h2 className="font-medium text-[15px]">Login number</h2>
 						<p className="text-muted-foreground text-sm">
-							OTP codes are sent to this number
+							One-time codes are sent to this number
 						</p>
 					</div>
-				</CardHeader>
-				<CardContent className="flex items-center justify-between text-sm">
-					<span className="font-medium">{phoneNumber ?? "—"}</span>
 					{phoneNumber ? (
 						<Badge variant="secondary">
-							<ShieldCheck className="mr-1 h-3 w-3" />
+							<ShieldCheck className="mr-1 size-3" />
 							Verified
 						</Badge>
 					) : null}
-				</CardContent>
+				</div>
+				<div className="flex items-center justify-between border-t border-border px-5 py-4">
+					<span className="text-muted-foreground text-sm">Phone</span>
+					<span className="font-mono text-[13px]">{phoneNumber ?? "—"}</span>
+				</div>
 			</Card>
-			<Card>
-				<CardContent className="py-6 text-muted-foreground text-sm">
+
+			<div className="max-w-3xl rounded-2xl border border-dashed border-border px-5 py-6">
+				<p className="eyebrow">Coming soon</p>
+				<p className="mt-2 max-w-lg text-muted-foreground text-sm">
 					WhatsApp reminders and group commands are not configured yet. Document
 					expiry reminders currently appear under Calendar.
-				</CardContent>
-			</Card>
+				</p>
+			</div>
 		</div>
 	);
 }

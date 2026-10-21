@@ -2,9 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LogOut, Mail, Phone, ShieldCheck, User } from "lucide-react";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { PageHeader } from "#/components/page-header";
+import { SettingsNav } from "#/components/settings-nav";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Card } from "#/components/ui/card";
 import { authClient } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/(app)/settings/user")({
@@ -29,54 +31,80 @@ function UserSettingsPage() {
 	}
 
 	return (
-		<div className="space-y-6">
-			<h1 className="font-bold text-2xl">Profile</h1>
-			<Card>
-				<CardHeader className="flex flex-row items-center gap-3">
-					<div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground text-lg">
-						{user.name?.charAt(0).toUpperCase() ?? <User className="h-6 w-6" />}
+		<div className="space-y-8">
+			<PageHeader
+				description="Your account and how you sign in. One phone number, one session, no passwords."
+				eyebrow="Account / Profile"
+				title="Profile"
+			/>
+			<SettingsNav />
+
+			<Card className="max-w-3xl">
+				<div className="flex flex-col gap-5 px-5 sm:flex-row sm:items-center">
+					<div className="grid size-14 shrink-0 place-items-center rounded-full bg-primary font-medium text-lg text-primary-foreground">
+						{user.name?.charAt(0).toUpperCase() ?? <User className="size-6" />}
 					</div>
-					<div>
-						<CardTitle className="text-lg">{user.name}</CardTitle>
-						<p className="text-muted-foreground text-sm">{user.email}</p>
+					<div className="min-w-0 flex-1">
+						<h2 className="truncate font-medium text-2xl tracking-[-0.03em]">
+							{user.name}
+						</h2>
+						<p className="truncate text-muted-foreground text-sm">
+							{user.email}
+						</p>
 					</div>
-				</CardHeader>
-				<CardContent className="space-y-3 text-sm">
-					<div className="flex items-center justify-between">
-						<span className="flex items-center gap-2 text-muted-foreground">
-							<Mail className="h-4 w-4" />
+					<Badge variant="secondary">
+						<ShieldCheck className="mr-1 size-3" />
+						Phone verified
+					</Badge>
+				</div>
+
+				<div className="border-t border-border">
+					<div className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+						<span className="flex items-center gap-2 text-muted-foreground text-sm">
+							<Mail className="size-4" strokeWidth={1.7} />
 							Email
 						</span>
-						<span className="flex items-center gap-2">
+						<span className="flex items-center gap-2 text-sm">
 							{user.email}
 							{user.emailVerified && (
-								<Badge variant="secondary">
-									<ShieldCheck className="mr-1 h-3 w-3" />
+								<Badge variant="outline">
+									<ShieldCheck className="mr-1 size-3" />
 									Verified
 								</Badge>
 							)}
 						</span>
 					</div>
-					<div className="flex items-center justify-between">
-						<span className="flex items-center gap-2 text-muted-foreground">
-							<Phone className="h-4 w-4" />
+					<div className="flex flex-col gap-1 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+						<span className="flex items-center gap-2 text-muted-foreground text-sm">
+							<Phone className="size-4" strokeWidth={1.7} />
 							Phone
 						</span>
-						<span>{user.phoneNumber ?? "—"}</span>
+						<span className="font-mono text-[13px]">
+							{user.phoneNumber ?? "—"}
+						</span>
 					</div>
-				</CardContent>
+				</div>
 			</Card>
-			<Button
-				onClick={async () => {
-					await authClient.signOut();
-					await navigate({ to: "/" });
-				}}
-				type="button"
-				variant="outline"
-			>
-				<LogOut className="mr-2 h-4 w-4" />
-				Sign out
-			</Button>
+
+			<div className="flex max-w-3xl items-center justify-between rounded-2xl border border-border bg-card px-5 py-4">
+				<div>
+					<p className="font-medium text-sm">Sign out of this device</p>
+					<p className="text-muted-foreground text-xs">
+						Your records stay safe. You can sign back in with a one-time code.
+					</p>
+				</div>
+				<Button
+					onClick={async () => {
+						await authClient.signOut();
+						await navigate({ to: "/" });
+					}}
+					type="button"
+					variant="outline"
+				>
+					<LogOut className="size-4" />
+					Sign out
+				</Button>
+			</div>
 		</div>
 	);
 }

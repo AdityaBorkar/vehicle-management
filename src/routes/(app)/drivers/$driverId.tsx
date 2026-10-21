@@ -64,44 +64,55 @@ function DriverDetailPage() {
 
 	if (!driver) {
 		return (
-			<div className="py-12 text-center">
-				<p className="text-muted-foreground">Driver not found</p>
+			<div className="flex min-h-[55vh] flex-col items-center justify-center px-6 text-center">
+				<p className="eyebrow">Not found</p>
+				<h1 className="display-sm mt-4">Driver not found.</h1>
+				<p className="lede mt-4">
+					This record may have been removed, or it belongs to another fleet.
+				</p>
 				<Link
-					className="mt-2 inline-block text-primary text-sm hover:underline"
+					className={buttonVariants({ className: "mt-8", variant: "outline" })}
 					to="/drivers"
 				>
-					Back to Drivers
+					<ArrowLeft className="size-4" />
+					Back to drivers
 				</Link>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-3">
-					<Link
-						aria-label="Back to drivers"
-						className={buttonVariants({ size: "icon", variant: "ghost" })}
-						to="/drivers"
-					>
-						<ArrowLeft className="h-4 w-4" />
-					</Link>
-					<h1 className="font-bold text-2xl">{driver.name}</h1>
-					{driver.phoneNumber && (
-						<Badge variant="secondary">{driver.phoneNumber}</Badge>
-					)}
-				</div>
-				<Button
-					disabled={deleteDriverMutation.isPending}
-					onClick={() => deleteDriverMutation.mutate({ id: driver.id })}
-					size="sm"
-					type="button"
-					variant="destructive"
+		<div className="space-y-8">
+			<div className="page-enter border-b border-border pb-8">
+				<Link
+					className="eyebrow inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+					to="/drivers"
 				>
-					<Trash2 className="mr-2 h-4 w-4" />
-					Delete
-				</Button>
+					<ArrowLeft className="size-3.5" />
+					Drivers
+				</Link>
+				<div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+					<div className="flex flex-wrap items-center gap-3">
+						<h1 className="page-title">{driver.name}</h1>
+						{driver.phoneNumber && (
+							<Badge variant="secondary">{driver.phoneNumber}</Badge>
+						)}
+					</div>
+					<Button
+						className="border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+						disabled={deleteDriverMutation.isPending}
+						onClick={() => deleteDriverMutation.mutate({ id: driver.id })}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						<Trash2 className="size-4" />
+						Delete driver
+					</Button>
+				</div>
+				<p className="mt-3 text-muted-foreground text-sm">
+					Licenses, classes and Aadhar details, kept with the driver.
+				</p>
 			</div>
 
 			<div className="grid gap-6 md:grid-cols-2">
@@ -327,7 +338,7 @@ function AadharCardSection({
 							type="button"
 							variant="outline"
 						>
-							<Plus className="mr-1 h-3 w-3" />
+							<Plus className="size-3.5" />
 							Add
 						</Button>
 					)}
@@ -630,7 +641,7 @@ function LicenseCard({
 						type="button"
 						variant="outline"
 					>
-						<Plus className="mr-1 h-3 w-3" />
+						<Plus className="size-3.5" />
 						Add Class
 					</Button>
 				</div>
@@ -866,7 +877,7 @@ function AddLicenseDialog({ driverId }: { driverId: number }) {
 			<DialogTrigger
 				render={
 					<Button size="sm" type="button">
-						<Plus className="mr-2 h-4 w-4" />
+						<Plus className="size-3.5" />
 						Add License
 					</Button>
 				}
@@ -996,7 +1007,7 @@ export function DlExpiryBadge({ date }: { date: Date }) {
 	if (daysLeft <= 90)
 		return (
 			<Badge
-				className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+				className="border-warning/20 bg-warning/10 text-warning dark:bg-warning/10"
 				variant="secondary"
 			>
 				{daysLeft}d

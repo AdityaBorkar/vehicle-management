@@ -10,8 +10,9 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { EmptyState } from "#/components/empty-state";
+import { PageHeader } from "#/components/page-header";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -115,102 +116,121 @@ function DriversPage() {
 	}
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="font-bold text-2xl">Drivers</h1>
-				<Dialog
-					onOpenChange={(v: boolean) => {
-						setOpen(v);
-						if (!v) setEditing(null);
-					}}
-					open={open}
-				>
-					<DialogTrigger
-						render={
-							<Button type="button">
-								<Plus className="mr-2 h-4 w-4" />
-								Add Driver
-							</Button>
-						}
-					/>
-					<DialogContent className="sm:max-w-md">
-						<DialogHeader>
-							<DialogTitle>
-								{editing ? "Edit Driver" : "Add Driver"}
-							</DialogTitle>
-							<DialogDescription>
-								{editing
-									? "Update driver details"
-									: "Enter driver name and phone number"}
-							</DialogDescription>
-						</DialogHeader>
-						<form className="space-y-4" onSubmit={handleSubmit}>
-							<div className="space-y-2">
-								<Label htmlFor={`${uid}-name`}>Name *</Label>
-								<Input
-									defaultValue={editing?.name ?? ""}
-									id={`${uid}-name`}
-									name="name"
-									placeholder="John Doe"
-									required
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor={`${uid}-phoneNumber`}>Phone Number</Label>
-								<Input
-									defaultValue={editing?.phoneNumber ?? ""}
-									id={`${uid}-phoneNumber`}
-									name="phoneNumber"
-									placeholder="+91 98765 43210"
-								/>
-							</div>
-							<DialogFooter>
-								<Button
-									onClick={() => {
-										setOpen(false);
-										setEditing(null);
-									}}
-									type="button"
-									variant="outline"
-								>
-									Cancel
+		<div className="space-y-8">
+			<PageHeader
+				actions={
+					<Dialog
+						onOpenChange={(v: boolean) => {
+							setOpen(v);
+							if (!v) setEditing(null);
+						}}
+						open={open}
+					>
+						<DialogTrigger
+							render={
+								<Button size="lg" type="button">
+									<Plus className="size-4" />
+									Add driver
 								</Button>
-								<Button
-									disabled={
-										createMutation.isPending || updateMutation.isPending
-									}
-									type="submit"
-								>
-									{createMutation.isPending || updateMutation.isPending
-										? "Saving..."
-										: editing
-											? "Update"
-											: "Create"}
-								</Button>
-							</DialogFooter>
-						</form>
-					</DialogContent>
-				</Dialog>
-			</div>
+							}
+						/>
+						<DialogContent className="sm:max-w-md">
+							<DialogHeader>
+								<DialogTitle>
+									{editing ? "Edit Driver" : "Add Driver"}
+								</DialogTitle>
+								<DialogDescription>
+									{editing
+										? "Update driver details"
+										: "Enter driver name and phone number"}
+								</DialogDescription>
+							</DialogHeader>
+							<form className="space-y-4" onSubmit={handleSubmit}>
+								<div className="space-y-2">
+									<Label htmlFor={`${uid}-name`}>Name *</Label>
+									<Input
+										className="h-11"
+										defaultValue={editing?.name ?? ""}
+										id={`${uid}-name`}
+										name="name"
+										placeholder="John Doe"
+										required
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor={`${uid}-phoneNumber`}>Phone Number</Label>
+									<Input
+										className="h-11"
+										defaultValue={editing?.phoneNumber ?? ""}
+										id={`${uid}-phoneNumber`}
+										name="phoneNumber"
+										placeholder="+91 98765 43210"
+									/>
+								</div>
+								<DialogFooter>
+									<Button
+										onClick={() => {
+											setOpen(false);
+											setEditing(null);
+										}}
+										type="button"
+										variant="outline"
+									>
+										Cancel
+									</Button>
+									<Button
+										disabled={
+											createMutation.isPending || updateMutation.isPending
+										}
+										type="submit"
+									>
+										{createMutation.isPending || updateMutation.isPending
+											? "Saving..."
+											: editing
+												? "Update"
+												: "Create"}
+									</Button>
+								</DialogFooter>
+							</form>
+						</DialogContent>
+					</Dialog>
+				}
+				description="People, phone numbers and licenses. Keep every driver’s paperwork attached to the person it belongs to."
+				eyebrow="Fleet / People"
+				meta={
+					<>
+						<span>
+							{drivers.length} {drivers.length === 1 ? "driver" : "drivers"} on
+							record
+						</span>
+						<span>Licenses and Aadhar details in one profile</span>
+					</>
+				}
+				title="Drivers"
+			/>
 
 			{drivers.length === 0 ? (
-				<Card>
-					<CardContent className="flex flex-col items-center gap-4 py-12">
-						<User className="h-12 w-12 text-muted-foreground" />
-						<div className="text-center">
-							<h2 className="font-semibold text-lg">No drivers yet</h2>
-							<p className="text-muted-foreground text-sm">
-								Add your first driver to manage their documents
-							</p>
-						</div>
-						<Button onClick={() => setOpen(true)}>
-							<Plus className="mr-2 h-4 w-4" />
-							Add Driver
+				<EmptyState
+					action={
+						<Button onClick={() => setOpen(true)} size="lg">
+							<Plus className="size-4" />
+							Add your first driver
 						</Button>
-					</CardContent>
-				</Card>
+					}
+					description="Add a driver to keep their license, classes and Aadhar details together."
+					icon={User}
+					title="No drivers yet"
+				/>
 			) : (
-				<Card>
+				<div className="overflow-hidden rounded-2xl border border-border bg-card">
+					<div className="flex items-center justify-between border-b border-border px-5 py-4">
+						<p className="font-medium text-[15px] tracking-[-0.01em]">
+							All drivers
+						</p>
+						<p className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.1em]">
+							{drivers.length} {drivers.length === 1 ? "record" : "records"}
+						</p>
+					</div>
 					<Table>
 						<TableHeader>
 							<TableRow>
@@ -222,36 +242,43 @@ function DriversPage() {
 						<TableBody>
 							{drivers.map((d) => (
 								<TableRow key={d.id}>
-									<TableCell className="font-medium">
+									<TableCell>
 										<Link
-											className="hover:underline"
+											className="flex items-center gap-3"
 											params={{ driverId: String(d.id) }}
 											to="/drivers/$driverId"
 										>
-											{d.name}
+											<span className="grid size-8 place-items-center rounded-full border border-border bg-muted/50 font-medium text-[11px]">
+												{d.name.charAt(0).toUpperCase()}
+											</span>
+											<span className="font-medium hover:underline">
+												{d.name}
+											</span>
 										</Link>
 									</TableCell>
-									<TableCell>{d.phoneNumber || "—"}</TableCell>
+									<TableCell className="text-muted-foreground">
+										{d.phoneNumber || "—"}
+									</TableCell>
 									<TableCell>
 										<DropdownMenu>
 											<DropdownMenuTrigger
 												aria-label={`Actions for ${d.name}`}
 												render={
 													<Button size="icon-xs" type="button" variant="ghost">
-														<MoreHorizontal className="h-4 w-4" />
+														<MoreHorizontal className="size-4" />
 													</Button>
 												}
 											/>
 											<DropdownMenuContent align="end">
 												<DropdownMenuItem onClick={() => handleEdit(d)}>
-													<Pencil className="mr-2 h-4 w-4" />
+													<Pencil className="size-4" />
 													Edit
 												</DropdownMenuItem>
 												<DropdownMenuItem
 													className="text-destructive"
 													onClick={() => deleteMutation.mutate({ id: d.id })}
 												>
-													<Trash2 className="mr-2 h-4 w-4" />
+													<Trash2 className="size-4" />
 													Delete
 												</DropdownMenuItem>
 											</DropdownMenuContent>
@@ -261,7 +288,7 @@ function DriversPage() {
 							))}
 						</TableBody>
 					</Table>
-				</Card>
+				</div>
 			)}
 		</div>
 	);

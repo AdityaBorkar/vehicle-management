@@ -1,13 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { BellOff, CalendarDays, Check, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+	ArrowUpRight,
+	BellOff,
+	CalendarDays,
+	Check,
+	Trash2,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { EmptyState } from "#/components/empty-state";
+import { PageHeader } from "#/components/page-header";
 import { Badge } from "#/components/ui/badge";
-import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
+import { Button, buttonVariants } from "#/components/ui/button";
 import { formatDate } from "#/lib/dates";
 import { orpc } from "#/lib/rpc";
 
@@ -33,7 +40,7 @@ function useInvalidateReminders() {
 	};
 }
 
-function ReminderCard({
+function ReminderRow({
 	reminder,
 	dismissed,
 	onDismiss,
@@ -49,10 +56,11 @@ function ReminderCard({
 	removePending: boolean;
 }): ReactNode {
 	return (
-		<Card>
-			<CardContent
-				className={`flex items-center justify-between gap-3 py-3${dismissed ? " opacity-70" : ""}`}
-			>
+		<div
+			className={`flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-muted/30${dismissed ? " opacity-60" : ""}`}
+		>
+			<div className="flex min-w-0 items-start gap-3">
+				<span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-foreground/30" />
 				<div className="min-w-0">
 					<p className="truncate font-medium text-sm">{reminder.title}</p>
 					<p className="text-muted-foreground text-xs">
@@ -61,51 +69,37 @@ function ReminderCard({
 							: `${reminder.type} · Due ${formatDate(reminder.dueDate)}`}
 					</p>
 				</div>
-				<div className="flex shrink-0 items-center gap-1">
-					{dismissed ? null : (
-						<Badge variant="secondary">{reminder.status}</Badge>
-					)}
-					{dismissed || !onDismiss ? null : (
-						<Button
-							aria-label={`Dismiss reminder ${reminder.title}`}
-							disabled={dismissPending}
-							onClick={onDismiss}
-							size="icon-xs"
-							type="button"
-							variant="ghost"
-						>
-							<Check className="h-4 w-4" />
-						</Button>
-					)}
+			</div>
+			<div className="flex shrink-0 items-center gap-1">
+				{dismissed ? null : (
+					<Badge variant="secondary">{reminder.status}</Badge>
+				)}
+				{dismissed || !onDismiss ? null : (
 					<Button
-						aria-label={`Delete reminder ${reminder.title}`}
-						disabled={removePending}
-						onClick={onRemove}
+						aria-label={`Dismiss reminder ${reminder.title}`}
+						disabled={dismissPending}
+						onClick={onDismiss}
 						size="icon-xs"
+						title="Mark as handled"
 						type="button"
 						variant="ghost"
 					>
-						<Trash2 className="h-4 w-4 text-destructive" />
+						<Check className="size-4" />
 					</Button>
-				</div>
-			</CardContent>
-		</Card>
-	);
-}
-
-function EmptyCalendar(): ReactNode {
-	return (
-		<Card>
-			<CardContent className="flex flex-col items-center gap-4 py-12">
-				<CalendarDays className="h-12 w-12 text-muted-foreground" />
-				<div className="text-center">
-					<h2 className="font-semibold text-lg">No reminders yet</h2>
-					<p className="text-muted-foreground text-sm">
-						Reminders for expiring documents appear here automatically
-					</p>
-				</div>
-			</CardContent>
-		</Card>
+				)}
+				<Button
+					aria-label={`Delete reminder ${reminder.title}`}
+					disabled={removePending}
+					onClick={onRemove}
+					size="icon-xs"
+					title="Delete reminder"
+					type="button"
+					variant="ghost"
+				>
+					<Trash2 className="size-4 text-destructive" />
+				</Button>
+			</div>
+		</div>
 	);
 }
 
@@ -143,53 +137,85 @@ function CalendarPage(): ReactNode {
 	const active = reminders.filter((r) => r.status === "active");
 	const dismissed = reminders.filter((r) => r.status !== "active");
 
-	if (reminders.length === 0) {
-		return (
-			<div className="space-y-6">
-				<div className="flex items-center justify-between">
-					<h1 className="font-bold text-2xl">Calendar</h1>
-				</div>
-				<EmptyCalendar />
-			</div>
-		);
-	}
-
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="font-bold text-2xl">Calendar</h1>
-			</div>
+		<div className="space-y-8">
+			<PageHeader
+				actions={
+					<Link
+						className={buttonVariants({ size: "lg", variant: "outline" })}
+						to="/documents"
+					>
+						Open document vault
+						<ArrowUpRight className="size-4" />
+					</Link>
+				}
+				description="Expiry dates, ordered by urgency. Handle what needs attention, dismiss what’s done — nothing is lost."
+				eyebrow="Records / Calendar"
+				meta={
+					<>
+						<span>{active.length} active</span>
+						<span>{dismissed.length} handled</span>
+					</>
+				}
+				title="Calendar"
+			/>
 
-			<div className="space-y-2">
-				{active.map((r) => (
-					<ReminderCard
-						dismissed={false}
-						dismissPending={dismissMutation.isPending}
-						key={r.id}
-						onDismiss={() => dismissMutation.mutate({ id: r.id })}
-						onRemove={() => removeMutation.mutate({ id: r.id })}
-						reminder={r}
-						removePending={removeMutation.isPending}
-					/>
-				))}
-			</div>
+			{reminders.length === 0 ? (
+				<EmptyState
+					description="Reminders for expiring documents appear here automatically once vehicles, licenses and policies are on file."
+					icon={CalendarDays}
+					title="No reminders yet"
+				/>
+			) : (
+				<div className="space-y-10">
+					<section>
+						<div className="mb-3 flex items-center justify-between">
+							<h2 className="eyebrow">Needs attention</h2>
+							<span className="font-mono text-[10px] text-muted-foreground">
+								{String(active.length).padStart(2, "0")}
+							</span>
+						</div>
+						{active.length === 0 ? (
+							<div className="rounded-2xl border border-border bg-card px-5 py-10 text-center text-muted-foreground text-sm">
+								Everything is handled. Nothing needs attention right now.
+							</div>
+						) : (
+							<div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+								{active.map((r) => (
+									<ReminderRow
+										dismissed={false}
+										dismissPending={dismissMutation.isPending}
+										key={r.id}
+										onDismiss={() => dismissMutation.mutate({ id: r.id })}
+										onRemove={() => removeMutation.mutate({ id: r.id })}
+										reminder={r}
+										removePending={removeMutation.isPending}
+									/>
+								))}
+							</div>
+						)}
+					</section>
 
-			{dismissed.length > 0 && (
-				<div className="space-y-2">
-					<h2 className="flex items-center gap-2 font-semibold text-muted-foreground text-sm">
-						<BellOff className="h-4 w-4" />
-						Dismissed ({dismissed.length})
-					</h2>
-					{dismissed.map((r) => (
-						<ReminderCard
-							dismissed
-							dismissPending={dismissMutation.isPending}
-							key={r.id}
-							onRemove={() => removeMutation.mutate({ id: r.id })}
-							reminder={r}
-							removePending={removeMutation.isPending}
-						/>
-					))}
+					{dismissed.length > 0 ? (
+						<section>
+							<h2 className="eyebrow mb-3 flex items-center gap-2">
+								<BellOff className="size-3.5" />
+								Handled ({dismissed.length})
+							</h2>
+							<div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+								{dismissed.map((r) => (
+									<ReminderRow
+										dismissed
+										dismissPending={dismissMutation.isPending}
+										key={r.id}
+										onRemove={() => removeMutation.mutate({ id: r.id })}
+										reminder={r}
+										removePending={removeMutation.isPending}
+									/>
+								))}
+							</div>
+						</section>
+					) : null}
 				</div>
 			)}
 		</div>

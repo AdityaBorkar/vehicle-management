@@ -11,9 +11,10 @@ import { useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { EmptyState } from "#/components/empty-state";
+import { PageHeader } from "#/components/page-header";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -71,6 +72,15 @@ const KIND_OPTIONS = [
 	"aadhar",
 	"other",
 ] as const;
+
+const STATUS_LABELS: Record<string, string> = {
+	all: "All statuses",
+	expired: "Expired",
+	expiring: "Expiring soon",
+	history: "History",
+	"no-expiry": "No expiry",
+	valid: "Valid",
+};
 
 const VEHICLE_EXPIRY_FIELDS = {
 	fitness: "fitnessValidTill",
@@ -177,87 +187,116 @@ function DocumentsPage() {
 	}
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="font-bold text-2xl">Documents</h1>
-					<p className="text-muted-foreground text-sm">
-						Every document ever held. Renewals keep the old rows — nothing is
-						deleted.
-					</p>
-				</div>
-				<Button onClick={() => setAddOpen(true)} type="button">
-					<Plus className="mr-2 h-4 w-4" />
-					Add Document
-				</Button>
-			</div>
+		<div className="space-y-8">
+			<PageHeader
+				actions={
+					<Button onClick={() => setAddOpen(true)} size="lg" type="button">
+						<Plus className="size-4" />
+						Add document
+					</Button>
+				}
+				description="Every document ever held, in one vault. Renewals keep the old rows — nothing is deleted."
+				eyebrow="Records / Vault"
+				meta={
+					<>
+						<span>
+							{docs.length} {docs.length === 1 ? "document" : "documents"} in
+							view
+						</span>
+						<span>History preserved on every renewal</span>
+					</>
+				}
+				title="Documents"
+			/>
 
-			<div className="flex flex-col gap-3 sm:flex-row">
+			<div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-2 sm:flex-row sm:items-center">
 				<div className="relative flex-1">
-					<Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
+					<Search className="absolute top-3 left-3 size-4 text-muted-foreground" />
 					<Input
-						className="pl-9"
+						className="border-transparent bg-transparent pl-9 focus-visible:border-transparent focus-visible:ring-0"
 						onChange={(e) => setSearch(e.target.value)}
 						placeholder="Search name, VIN, registration, DL number…"
 						value={search}
 					/>
 				</div>
-				<Select
-					onValueChange={(v) => setKindFilter(v ?? "all")}
-					value={kindFilter}
-				>
-					<SelectTrigger className="w-full sm:w-48">
-						<SelectValue placeholder="All kinds" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All kinds</SelectItem>
-						{KIND_OPTIONS.map((k) => (
-							<SelectItem key={k} value={k}>
-								{KIND_LABELS[k] ?? k}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-				<Select
-					onValueChange={(v) => setStatusFilter(v ?? "all")}
-					value={statusFilter}
-				>
-					<SelectTrigger className="w-full sm:w-48">
-						<SelectValue placeholder="All statuses" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All statuses</SelectItem>
-						<SelectItem value="valid">Valid</SelectItem>
-						<SelectItem value="expiring">Expiring soon</SelectItem>
-						<SelectItem value="expired">Expired</SelectItem>
-						<SelectItem value="no-expiry">No expiry</SelectItem>
-						<SelectItem value="history">History</SelectItem>
-					</SelectContent>
-				</Select>
+				<div className="flex gap-2">
+					<Select
+						onValueChange={(v) => setKindFilter(v ?? "all")}
+						value={kindFilter}
+					>
+						<SelectTrigger className="w-full sm:w-44">
+							<SelectValue placeholder="All kinds">
+								{(value: string | null) =>
+									value && value !== "all"
+										? (KIND_LABELS[value] ?? value)
+										: "All kinds"
+								}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All kinds</SelectItem>
+							{KIND_OPTIONS.map((k) => (
+								<SelectItem key={k} value={k}>
+									{KIND_LABELS[k] ?? k}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<Select
+						onValueChange={(v) => setStatusFilter(v ?? "all")}
+						value={statusFilter}
+					>
+						<SelectTrigger className="w-full sm:w-44">
+							<SelectValue placeholder="All statuses">
+								{(value: string | null) =>
+									STATUS_LABELS[value ?? "all"] ?? "All statuses"
+								}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All statuses</SelectItem>
+							<SelectItem value="valid">Valid</SelectItem>
+							<SelectItem value="expiring">Expiring soon</SelectItem>
+							<SelectItem value="expired">Expired</SelectItem>
+							<SelectItem value="no-expiry">No expiry</SelectItem>
+							<SelectItem value="history">History</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
 			</div>
 
 			{docs.length === 0 ? (
-				<Card>
-					<CardContent className="flex flex-col items-center gap-4 py-12">
-						<FileText className="h-12 w-12 text-muted-foreground" />
-						<div className="text-center">
-							<h2 className="font-semibold text-lg">No documents found</h2>
-							<p className="text-muted-foreground text-sm">
-								{(docList ?? []).length === 0
-									? "Add your first document, or add vehicles and licenses — their papers show up here automatically"
-									: "Try a different search or filter"}
-							</p>
-						</div>
-						{(docList ?? []).length === 0 && (
-							<Button onClick={() => setAddOpen(true)}>
-								<Plus className="mr-2 h-4 w-4" />
-								Add Document
+				<EmptyState
+					action={
+						(docList ?? []).length === 0 ? (
+							<Button onClick={() => setAddOpen(true)} size="lg">
+								<Plus className="size-4" />
+								Add your first document
 							</Button>
-						)}
-					</CardContent>
-				</Card>
+						) : undefined
+					}
+					description={
+						(docList ?? []).length === 0
+							? "Add your first document, or add vehicles and licenses — their papers show up here automatically."
+							: "Try a different search or filter to widen the view."
+					}
+					icon={FileText}
+					title={
+						(docList ?? []).length === 0
+							? "No documents yet"
+							: "No documents found"
+					}
+				/>
 			) : (
-				<Card>
+				<div className="overflow-hidden rounded-2xl border border-border bg-card">
+					<div className="flex items-center justify-between border-b border-border px-5 py-4">
+						<p className="font-medium text-[15px] tracking-[-0.01em]">
+							Document vault
+						</p>
+						<p className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.1em]">
+							{docs.length} {docs.length === 1 ? "record" : "records"}
+						</p>
+					</div>
 					<Table>
 						<TableHeader>
 							<TableRow>
@@ -321,7 +360,9 @@ function DocumentsPage() {
 											))
 										)}
 									</TableCell>
-									<TableCell>{formatDate(d.issueDate)}</TableCell>
+									<TableCell className="text-muted-foreground">
+										{formatDate(d.issueDate)}
+									</TableCell>
 									<TableCell>{formatDate(d.expiryDate)}</TableCell>
 									<TableCell>
 										<StatusBadge doc={d} />
@@ -337,7 +378,7 @@ function DocumentsPage() {
 													type="button"
 													variant="ghost"
 												>
-													<RefreshCw className="h-4 w-4" />
+													<RefreshCw className="size-4" />
 												</Button>
 											)}
 											{d.source === "stored" &&
@@ -356,7 +397,7 @@ function DocumentsPage() {
 														type="button"
 														variant="ghost"
 													>
-														<Archive className="h-4 w-4 text-muted-foreground" />
+														<Archive className="size-4 text-muted-foreground" />
 													</Button>
 												)}
 										</div>
@@ -365,7 +406,7 @@ function DocumentsPage() {
 							))}
 						</TableBody>
 					</Table>
-				</Card>
+				</div>
 			)}
 
 			<AddDocumentDialog

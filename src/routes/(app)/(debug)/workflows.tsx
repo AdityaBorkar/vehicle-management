@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FlaskConical } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { PageHeader } from "#/components/page-header";
+import { Card } from "#/components/ui/card";
 
 export const Route = createFileRoute("/(app)/(debug)/workflows")({
 	component: WorkflowsPage,
@@ -20,30 +21,34 @@ const KNOWN_ROUTES = [
 
 function WorkflowsPage() {
 	return (
-		<div className="space-y-6">
-			<h1 className="font-bold text-2xl">Workflows</h1>
-			<Card>
-				<CardHeader className="flex flex-row items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-						<FlaskConical className="h-5 w-5 text-primary" />
+		<div className="space-y-8">
+			<PageHeader
+				description="Automated RTO workflows are not wired up yet. This area lists the routes available in this build."
+				eyebrow="Debug / Workflows"
+				title="Workflows"
+			/>
+			<Card className="max-w-3xl">
+				<div className="flex items-center gap-4 px-5">
+					<div className="grid size-11 place-items-center rounded-full border border-border bg-muted/40">
+						<FlaskConical className="size-5" strokeWidth={1.6} />
 					</div>
 					<div>
-						<CardTitle className="text-base">Debug area</CardTitle>
+						<h2 className="font-medium text-[15px]">Debug area</h2>
 						<p className="text-muted-foreground text-sm">
-							Automated RTO workflows are not wired up yet
+							Reachable app routes in this build
 						</p>
 					</div>
-				</CardHeader>
-				<CardContent className="space-y-2 text-sm">
-					<p className="text-muted-foreground">
-						Reachable app routes in this build:
-					</p>
-					<ul className="list-inside list-disc space-y-1 font-mono text-xs">
-						{KNOWN_ROUTES.map((r) => (
-							<li key={r}>{r}</li>
-						))}
-					</ul>
-				</CardContent>
+				</div>
+				<ul className="grid gap-1 border-t border-border px-5 py-4 font-mono text-xs sm:grid-cols-2">
+					{KNOWN_ROUTES.map((route) => (
+						<li
+							className="rounded-lg px-2 py-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+							key={route}
+						>
+							{route}
+						</li>
+					))}
+				</ul>
 			</Card>
 		</div>
 	);

@@ -2,44 +2,109 @@ import type { QueryClient } from "@tanstack/query-core";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
 	createRootRouteWithContext,
+	type ErrorComponentProps,
 	HeadContent,
 	Link,
 	Scripts,
 	useNavigate,
+	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import {
-	Bell,
-	Car,
-	FileText,
-	Home,
-	LogOut,
-	Settings,
-	Users,
-} from "lucide-react";
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { SiteFooter } from "#/components/site-footer";
+import { SiteHeader } from "#/components/site-header";
 import { ThemeProvider } from "#/components/theme-provider";
-import { ThemeToggle } from "#/components/theme-toggle";
-import { Button } from "#/components/ui/button";
+import { Button, buttonVariants } from "#/components/ui/button";
 import { Toaster } from "#/components/ui/sonner";
 import { authClient } from "#/lib/auth-client";
+import { MAIN_CONTENT_ID } from "#/lib/constants";
 import appCss from "./styles.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 	{
+		errorComponent: ErrorPage,
 		head: () => ({
-			links: [{ href: appCss, rel: "stylesheet" }],
+			links: [
+				{ href: appCss, rel: "stylesheet" },
+				{ href: "/favicon.svg", rel: "icon", type: "image/svg+xml" },
+			],
 			meta: [
 				{ charSet: "utf-8" },
 				{ content: "width=device-width, initial-scale=1", name: "viewport" },
-				{ title: "Vehicle Management" },
+				{ title: "Vahan — Fleet operations, in order" },
+				{
+					content:
+						"Vehicles, drivers, documents and reminders — every detail in one calm, ordered place.",
+					name: "description",
+				},
+				{
+					content: "#ffffff",
+					media: "(prefers-color-scheme: light)",
+					name: "theme-color",
+				},
+				{
+					content: "#0a0a0a",
+					media: "(prefers-color-scheme: dark)",
+					name: "theme-color",
+				},
 			],
 		}),
+		notFoundComponent: NotFoundPage,
 		shellComponent: RootDocument,
 	},
 );
+
+function ErrorPage({ error, reset }: ErrorComponentProps): ReactNode {
+	return (
+		<div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
+			<div className="dot-grid pointer-events-none absolute inset-0 text-foreground opacity-[0.12] [mask-image:radial-gradient(50%_50%_at_50%_50%,black,transparent)]" />
+			<p className="eyebrow relative">Something went wrong</p>
+			<h1 className="display relative mt-4">A detour.</h1>
+			<p className="lede relative mt-4 max-w-md">
+				We hit an unexpected error. Try again, or head back to the overview.
+			</p>
+			<div className="relative mt-8 flex flex-wrap justify-center gap-3">
+				<Button onClick={reset} size="lg" type="button">
+					Try again
+				</Button>
+				<Link
+					className={buttonVariants({ size: "lg", variant: "outline" })}
+					to="/dashboard"
+				>
+					Back to overview
+				</Link>
+			</div>
+			<details className="relative mt-10 max-w-lg text-left">
+				<summary className="eyebrow cursor-pointer">Error details</summary>
+				<pre className="mt-3 overflow-x-auto rounded-xl border border-border bg-card p-3 font-mono text-muted-foreground text-xs">
+					{error instanceof Error ? error.message : String(error)}
+				</pre>
+			</details>
+		</div>
+	);
+}
+
+function NotFoundPage(): ReactNode {
+	return (
+		<div className="relative flex min-h-[65vh] flex-col items-center justify-center overflow-hidden py-16 text-center">
+			<div className="dot-grid pointer-events-none absolute inset-0 text-foreground opacity-[0.12] [mask-image:radial-gradient(50%_50%_at_50%_50%,black,transparent)]" />
+			<p className="eyebrow relative">Error 404</p>
+			<h1 className="display relative mt-4">Off the map.</h1>
+			<p className="lede relative mt-4 max-w-md">
+				This page doesn’t exist — or it moved. Head back to the overview and
+				pick up the thread.
+			</p>
+			<Link
+				className={buttonVariants({ className: "relative mt-8", size: "lg" })}
+				to="/dashboard"
+			>
+				Back to overview
+			</Link>
+		</div>
+	);
+}
 
 function RootDocument({ children }: { children: ReactNode }): ReactNode {
 	return (
@@ -48,6 +113,9 @@ function RootDocument({ children }: { children: ReactNode }): ReactNode {
 				<HeadContent />
 			</head>
 			<body>
+				<a className="skip-link" href={`#${MAIN_CONTENT_ID}`}>
+					Skip to content
+				</a>
 				<ThemeProvider>
 					<AppShell>{children}</AppShell>
 					<Toaster />
@@ -70,6 +138,9 @@ function RootDocument({ children }: { children: ReactNode }): ReactNode {
 export function AppShell({ children }: { children: ReactNode }): ReactNode {
 	const { data: session, isPending } = authClient.useSession();
 	const navigate = useNavigate();
+	const pathname = useRouterState({
+		select: (state) => state.location.pathname,
+	});
 
 	async function handleSignOut(): Promise<void> {
 		await authClient.signOut();
@@ -85,68 +156,19 @@ export function AppShell({ children }: { children: ReactNode }): ReactNode {
 	}
 
 	return (
-		<div className="flex min-h-screen">
-			<aside className="sticky top-0 flex h-screen w-56 flex-col border-r bg-card">
-				<div className="flex h-14 items-center border-b px-4">
-					<Car className="mr-2 h-5 w-5 text-primary" />
-					<span className="font-semibold">Vahan</span>
-					<ThemeToggle className="ml-auto" />
-				</div>
-				<nav className="flex-1 space-y-1 p-3">
-					<NavLink icon={Home} label="Dashboard" to="/dashboard" />
-					<NavLink icon={Car} label="Vehicles" to="/vehicles" />
-					<NavLink icon={Users} label="Drivers" to="/drivers" />
-					<NavLink icon={FileText} label="Documents" to="/documents" />
-					<NavLink icon={Bell} label="Calendar" to="/calendar" />
-					<NavLink icon={Settings} label="Settings" to="/settings/user" />
-				</nav>
-				<div className="border-t p-3">
-					<div className="mb-2 flex items-center gap-2">
-						<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-xs">
-							{session.user.name?.charAt(0).toUpperCase() ?? "U"}
-						</div>
-						<div className="min-w-0 flex-1">
-							<p className="truncate font-medium text-sm">
-								{session.user.name}
-							</p>
-							<p className="truncate text-muted-foreground text-xs">
-								{session.user.email}
-							</p>
-						</div>
-					</div>
-					<Button
-						className="w-full justify-start"
-						onClick={() => void handleSignOut()}
-						size="sm"
-						type="button"
-						variant="ghost"
-					>
-						<LogOut className="mr-2 h-4 w-4" />
-						Sign out
-					</Button>
-				</div>
-			</aside>
-			<main className="flex-1 overflow-auto">
-				<div className="mx-auto max-w-6xl p-6">{children}</div>
+		<div className="flex min-h-screen flex-col bg-background">
+			<SiteHeader
+				onSignOut={() => void handleSignOut()}
+				user={{ email: session.user.email, name: session.user.name }}
+			/>
+			<main
+				className="page-enter mx-auto w-full max-w-[1320px] flex-1 px-5 py-10 md:px-8 md:py-14"
+				id={MAIN_CONTENT_ID}
+				key={pathname}
+			>
+				{children}
 			</main>
+			<SiteFooter />
 		</div>
-	);
-}
-
-type NavLinkProps = {
-	to: string;
-	icon: ComponentType<{ className?: string }>;
-	label: string;
-};
-
-export function NavLink({ to, icon: Icon, label }: NavLinkProps): ReactNode {
-	return (
-		<Link
-			className="flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground text-sm transition-colors hover:bg-accent hover:text-accent-foreground [&.active]:bg-accent [&.active]:font-medium [&.active]:text-accent-foreground"
-			to={to}
-		>
-			<Icon className="h-4 w-4" />
-			{label}
-		</Link>
 	);
 }
