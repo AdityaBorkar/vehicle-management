@@ -5,12 +5,15 @@ import { z } from "zod";
 import {
 	enqueueWorkflowRun,
 	getLatestSucceededRun,
+	getWorkflowDefinition,
+	getWorkflowMetadata,
 	getWorkflowRun,
 	listWorkflowRuns,
 } from "#/browser-automation/engine";
 import { vehicles } from "#/db-schema";
 import { db } from "#/lib/db";
 import "#/browser-automation/workflows/pucc";
+import "#/browser-automation/workflows/vahan-transaction-history";
 import {
 	normalizeChassisLast5,
 	normalizePuccRegistrationNumber,
@@ -142,4 +145,143 @@ export const getLatestPucc = protectedProcedure
 			PUCC_WORKFLOW_NAME,
 			vehicle.id,
 		);
+	});
+
+export const listDefinitions = protectedProcedure.handler(() => {
+	return getWorkflowMetadata();
+});
+
+const startRunSchema = z.object({
+	input: z.record(z.string(), z.unknown()),
+	workflowName: z.string().min(1),
+});
+
+function asRecord(value: unknown): Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+/**
+ * Generic workflow trigger (Spec 03): validates `workflowName` against the
+ * registry, runs the workflow's zod `inputSchema` when present, verifies
+ * `vehicleId` ownership, then enqueues. Per-workflow starters remain.
+ */
+export const startRun = protectedProcedure
+	.input(startRunSchema)
+	.handler(async ({ context, input }) => {
+		const def = getWorkflowDefinition(input.workflowName);
+		if (!def) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Unknown workflow "${input.workflowName}".`,
+			});
+		}
+		// Coerce numeric-string vehicleId/number fields (the generic debug form
+		// posts everything as strings) before zod validation so the server
+		// schema is authoritative, not the client cast.
+		const rawInput = asRecord(input.input);
+		const fields = def.meta?.fields ?? [];
+		const coerced: Record<string, unknown> = { ...rawInput };
+		for (const f of fields) {
+			if (
+				(f.type === "vehicleId" || f.type === "number") &&
+				typeof coerced[f.name] === "string"
+			) {
+				const trimmed = (coerced[f.name] as string).trim();
+				if (trimmed !== "" && /^\d+$/.test(trimmed)) {
+					coerced[f.name] = Number(trimmed);
+				}
+			}
+			if (
+				typeof f.validate === "function" &&
+				typeof coerced[f.name] === "string"
+			) {
+				const err = f.validate(coerced[f.name] as string);
+				if (err) {
+					throw new ORPCError("BAD_REQUEST", {
+						data: { fieldErrors: { [f.name]: err } },
+						message: `Invalid ${f.label}: ${err}`,
+					});
+				}
+			}
+		}
+		let parsed: Record<string, unknown> = coerced;
+		const schema = def.inputSchema as unknown as
+			| {
+					safeParse: (v: unknown) => {
+						success: boolean;
+						data?: unknown;
+						error?: {
+							issues?: { message: string; path: (string | number)[] }[];
+						};
+					};
+			  }
+			| undefined;
+		if (schema && typeof schema.safeParse === "function") {
+			const result = schema.safeParse(coerced);
+			if (!result.success) {
+				const issues = result.error?.issues ?? [];
+				const fieldErrors: Record<string, string> = {};
+				for (const issue of issues) {
+					const key = issue.path.length > 0 ? String(issue.path[0]) : "_form";
+					fieldErrors[key] ??= issue.message;
+				}
+				const detail =
+					issues.length > 0
+						? `: ${issues.map((i) => `${String(i.path[0] ?? "_form")}: ${i.message}`).join("; ")}`
+						: "";
+				throw new ORPCError("BAD_REQUEST", {
+					data: { fieldErrors },
+					message: `Invalid input for "${input.workflowName}"${detail}`,
+				});
+			}
+			parsed = asRecord(result.data);
+		}
+		let vehicleId: number | null = null;
+		const rawVehicleId = parsed["vehicleId"];
+		const numericVehicleId =
+			typeof rawVehicleId === "number"
+				? rawVehicleId
+				: typeof rawVehicleId === "string" && /^\d+$/.test(rawVehicleId.trim())
+					? Number(rawVehicleId.trim())
+					: null;
+		if (rawVehicleId !== undefined && numericVehicleId === null) {
+			throw new ORPCError("BAD_REQUEST", {
+				data: { fieldErrors: { vehicleId: "Enter a numeric vehicle ID." } },
+				message: "Invalid vehicleId: Enter a numeric vehicle ID.",
+			});
+		}
+		if (numericVehicleId !== null) {
+			const [vehicle] = await db
+				.select({ id: vehicles.id })
+				.from(vehicles)
+				.where(
+					and(
+						eq(vehicles.id, numericVehicleId),
+						eq(vehicles.userId, context.user.id),
+					),
+				);
+			if (!vehicle) {
+				throw new ORPCError("NOT_FOUND", {
+					message: `Vehicle #${numericVehicleId} not found.`,
+				});
+			}
+			vehicleId = vehicle.id;
+			parsed = { ...parsed, vehicleId };
+		}
+		try {
+			return await enqueueWorkflowRun({
+				input: parsed,
+				userId: context.user.id,
+				vehicleId,
+				workflowName: input.workflowName,
+			});
+		} catch (err) {
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message:
+					err instanceof Error
+						? err.message
+						: `Failed to enqueue ${input.workflowName} run.`,
+			});
+		}
 	});

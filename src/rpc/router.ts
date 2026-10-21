@@ -1,5 +1,5 @@
 import * as aadharCard from "./procedures/aadhar-card";
-import * as dieselCard from "./procedures/diesel-card";
+import * as debug from "./procedures/debug";
 import * as document from "./procedures/document";
 import * as driver from "./procedures/driver";
 import * as fastag from "./procedures/fastag";
@@ -12,7 +12,7 @@ import * as workflow from "./procedures/workflow";
 
 export const router = {
 	aadharCard,
-	dieselCard,
+	debug,
 	document,
 	driver,
 	fastag,

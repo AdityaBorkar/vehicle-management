@@ -1,29 +1,17 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/(app)/vehicles/")({
 	component: VehiclesPage,
 });
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-	Car,
-	Eye,
-	Loader2,
-	MoreHorizontal,
-	Pencil,
-	Plus,
-	RefreshCw,
-	Search,
-	Sparkles,
-	Trash2,
-} from "lucide-react";
+import { Car, Loader2, Plus, RefreshCw, Search, Sparkles } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
 import { EmptyState } from "#/components/empty-state";
 import { PageHeader } from "#/components/page-header";
-import { PuccCertificateMenuItem } from "#/components/pucc-certificate-button";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -35,12 +23,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
@@ -51,32 +33,18 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "#/components/ui/table";
+	EMPTY_FORM,
+	formToCreateInput,
+	lookupRecordToForm,
+	sourceLabel,
+	type VehicleForm,
+	vehicleRecordToForm,
+} from "#/components/vehicles/vehicle-form";
+import { VehiclesTable } from "#/components/vehicles/vehicles-table";
 import { orpc } from "#/lib/rpc";
-
-const EMPTY_FORM: VehicleForm = {
-	color: "",
-	fitnessValidTill: "",
-	fuelType: "",
-	insuranceValidTill: "",
-	make: "",
-	model: "",
-	pollutionValidTill: "",
-	registrationDate: "",
-	registrationNumber: "",
-	vin: "",
-	year: "",
-};
 
 function VehiclesPage() {
 	const uid = useId();
-	const navigate = useNavigate();
 	const [open, setOpen] = useState(false);
 	const [editing, setEditing] = useState<VehicleForm | null>(null);
 	const [draft, setDraft] = useState<VehicleForm>(EMPTY_FORM);
@@ -139,20 +107,18 @@ function VehiclesPage() {
 					toast.error(message);
 					return;
 				}
-				setDraft((prev) => ({
-					...prev,
-					color: data.color ?? "",
-					fitnessValidTill: data.fitnessValidTill ?? "",
-					fuelType: data.fuelType ?? "",
-					insuranceValidTill: data.insuranceValidTill ?? "",
-					make: data.make ?? "",
-					model: data.model ?? "",
-					pollutionValidTill: data.pollutionValidTill ?? "",
-					registrationDate: data.registrationDate ?? "",
-					registrationNumber: data.registrationNumber,
-					vin: data.vin ?? "",
-					year: data.year?.toString() ?? "",
-				}));
+				setDraft((prev) =>
+					lookupRecordToForm(
+						data as unknown as Record<
+							string,
+							string | number | null | undefined
+						> & {
+							registrationNumber: string;
+							year?: number | null;
+						},
+						prev,
+					),
+				);
 				setLookupMeta({ fetchedAt: data.fetchedAt, source: data.source });
 				setLookupError(null);
 				setShowManual(false);
@@ -184,29 +150,16 @@ function VehiclesPage() {
 		setOpen(true);
 	}
 
-	function handleEdit(vehicle: (typeof vehicles)[0]) {
-		const form: VehicleForm = {
-			color: vehicle.color ?? "",
-			fitnessValidTill: vehicle.fitnessValidTill
-				? toDateInput(vehicle.fitnessValidTill)
-				: "",
-			fuelType: vehicle.fuelType ?? "",
-			id: vehicle.id,
-			insuranceValidTill: vehicle.insuranceValidTill
-				? toDateInput(vehicle.insuranceValidTill)
-				: "",
-			make: vehicle.make ?? "",
-			model: vehicle.model ?? "",
-			pollutionValidTill: vehicle.pollutionValidTill
-				? toDateInput(vehicle.pollutionValidTill)
-				: "",
-			registrationDate: vehicle.registrationDate
-				? toDateInput(vehicle.registrationDate)
-				: "",
-			registrationNumber: vehicle.registrationNumber,
-			vin: vehicle.vin ?? "",
-			year: vehicle.year?.toString() ?? "",
-		};
+	function handleEdit(vehicle: { id: number; registrationNumber: string }) {
+		const form = vehicleRecordToForm(
+			vehicle as unknown as Record<
+				string,
+				string | number | Date | null | undefined
+			> & {
+				id: number;
+				registrationNumber: string;
+			},
+		);
 		setEditing(form);
 		setDraft(form);
 		setLookupMeta(null);
@@ -242,36 +195,12 @@ function VehiclesPage() {
 			handleFetch();
 			return;
 		}
-		const data = {
-			color: draft.color || undefined,
-			fitnessValidTill: draft.fitnessValidTill
-				? new Date(draft.fitnessValidTill)
-				: undefined,
-			fuelType: (draft.fuelType || undefined) as
-				| "Diesel"
-				| "Petrol"
-				| "CNG"
-				| "EV"
-				| "Other"
-				| undefined,
-			insuranceValidTill: draft.insuranceValidTill
-				? new Date(draft.insuranceValidTill)
-				: undefined,
-			make: draft.make || undefined,
-			model: draft.model || undefined,
-			pollutionValidTill: draft.pollutionValidTill
-				? new Date(draft.pollutionValidTill)
-				: undefined,
-			registrationDate: draft.registrationDate
-				? new Date(draft.registrationDate)
-				: undefined,
-			registrationNumber: draft.registrationNumber.trim(),
-			vin: draft.vin.trim() || undefined,
-			year: draft.year ? Number(draft.year) : undefined,
-		};
+		const data = formToCreateInput(draft);
 
 		if (editing?.id) {
 			updateMutation.mutate({ id: editing.id, ...data });
+		} else {
+			createMutation.mutate(data);
 		}
 	}
 
@@ -309,7 +238,7 @@ function VehiclesPage() {
 								<DialogDescription>
 									{isEditing
 										? "Update vehicle details"
-										: "Enter the vehicle number — the rest autofills from APIExpress"}
+										: "Enter the vehicle number — the rest autofills from Cashfree"}
 								</DialogDescription>
 							</DialogHeader>
 							<form className="space-y-4" onSubmit={handleSubmit}>
@@ -359,7 +288,7 @@ function VehiclesPage() {
 									{!isEditing && !hasAutofill && !lookupError && (
 										<p className="text-muted-foreground text-xs">
 											Only the vehicle number is needed. Make, model, fuel,
-											dates, etc. autofill via APIExpress.
+											dates, etc. autofill via Cashfree.
 										</p>
 									)}
 								</div>
@@ -367,7 +296,7 @@ function VehiclesPage() {
 								{lookupMutation.isPending && (
 									<div className="flex items-center gap-2 rounded-xl border border-dashed p-3 text-muted-foreground text-sm">
 										<Loader2 className="size-4 animate-spin" />
-										Fetching details from APIExpress for{" "}
+										Fetching details from Cashfree for{" "}
 										<span className="font-medium text-foreground">
 											{draft.registrationNumber.trim()}
 										</span>
@@ -379,7 +308,7 @@ function VehiclesPage() {
 									<div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
 										<p className="text-destructive">{lookupError}</p>
 										<p className="text-muted-foreground text-xs">
-											Autofill runs on APIExpress. If the lookup fails (bad
+											Autofill runs on Cashfree. If the lookup fails (bad
 											number, no record, or provider outage), retry or enter
 											details manually.
 										</p>
@@ -550,6 +479,161 @@ function VehiclesPage() {
 												value={draft.pollutionValidTill}
 											/>
 										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-ownerName`}>
+												Owner {hasAutofill && !isEditing && <AutofilledHint />}
+											</Label>
+											<Input
+												id={`${uid}-ownerName`}
+												onChange={(e) => set("ownerName", e.target.value)}
+												value={draft.ownerName}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-fatherName`}>Father Name</Label>
+											<Input
+												id={`${uid}-fatherName`}
+												onChange={(e) => set("fatherName", e.target.value)}
+												value={draft.fatherName}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-mobileNumber`}>Mobile</Label>
+											<Input
+												id={`${uid}-mobileNumber`}
+												onChange={(e) => set("mobileNumber", e.target.value)}
+												value={draft.mobileNumber}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-vehicleClass`}>
+												Vehicle Class
+											</Label>
+											<Input
+												id={`${uid}-vehicleClass`}
+												onChange={(e) => set("vehicleClass", e.target.value)}
+												value={draft.vehicleClass}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-bodyType`}>Body Type</Label>
+											<Input
+												id={`${uid}-bodyType`}
+												onChange={(e) => set("bodyType", e.target.value)}
+												value={draft.bodyType}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-manufacturerModel`}>
+												Manufacturer Model
+											</Label>
+											<Input
+												id={`${uid}-manufacturerModel`}
+												onChange={(e) =>
+													set("manufacturerModel", e.target.value)
+												}
+												value={draft.manufacturerModel}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-seatingCapacity`}>Seating</Label>
+											<Input
+												id={`${uid}-seatingCapacity`}
+												onChange={(e) => set("seatingCapacity", e.target.value)}
+												value={draft.seatingCapacity}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-rtoCode`}>RTO Code</Label>
+											<Input
+												id={`${uid}-rtoCode`}
+												onChange={(e) => set("rtoCode", e.target.value)}
+												value={draft.rtoCode}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-rtoName`}>RTO Name</Label>
+											<Input
+												id={`${uid}-rtoName`}
+												onChange={(e) => set("rtoName", e.target.value)}
+												value={draft.rtoName}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-hypothecation`}>
+												Hypothecation
+											</Label>
+											<Input
+												id={`${uid}-hypothecation`}
+												onChange={(e) => set("hypothecation", e.target.value)}
+												value={draft.hypothecation}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-financer`}>Financer</Label>
+											<Input
+												id={`${uid}-financer`}
+												onChange={(e) => set("financer", e.target.value)}
+												value={draft.financer}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-insuranceCompany`}>Insurer</Label>
+											<Input
+												id={`${uid}-insuranceCompany`}
+												onChange={(e) =>
+													set("insuranceCompany", e.target.value)
+												}
+												value={draft.insuranceCompany}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-insurancePolicyNo`}>
+												Policy No.
+											</Label>
+											<Input
+												id={`${uid}-insurancePolicyNo`}
+												onChange={(e) =>
+													set("insurancePolicyNo", e.target.value)
+												}
+												value={draft.insurancePolicyNo}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-permitNumber`}>Permit No.</Label>
+											<Input
+												id={`${uid}-permitNumber`}
+												onChange={(e) => set("permitNumber", e.target.value)}
+												value={draft.permitNumber}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-permitType`}>Permit Type</Label>
+											<Input
+												id={`${uid}-permitType`}
+												onChange={(e) => set("permitType", e.target.value)}
+												value={draft.permitType}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-pucNumber`}>PUC No.</Label>
+											<Input
+												id={`${uid}-pucNumber`}
+												onChange={(e) => set("pucNumber", e.target.value)}
+												value={draft.pucNumber}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-taxValidTill`}>
+												Tax Valid Till
+											</Label>
+											<Input
+												id={`${uid}-taxValidTill`}
+												onChange={(e) => set("taxValidTill", e.target.value)}
+												type="date"
+												value={draft.taxValidTill}
+											/>
+										</div>
 									</div>
 								)}
 								<DialogFooter>
@@ -614,126 +698,18 @@ function VehiclesPage() {
 					title="No vehicles yet"
 				/>
 			) : (
-				<div className="overflow-hidden rounded-2xl border border-border bg-card">
-					<div className="flex items-center justify-between border-b border-border px-5 py-4">
-						<p className="font-medium text-[15px] tracking-[-0.01em]">
-							All vehicles
-						</p>
-						<p className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.1em]">
-							{vehicles.length} {vehicles.length === 1 ? "record" : "records"}
-						</p>
-					</div>
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Registration</TableHead>
-								<TableHead>Make / Model</TableHead>
-								<TableHead>Year</TableHead>
-								<TableHead>Fuel</TableHead>
-								<TableHead>Insurance</TableHead>
-								<TableHead className="w-10" />
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{vehicles.map((v) => (
-								<TableRow
-									className="cursor-pointer"
-									key={v.id}
-									onClick={() =>
-										navigate({
-											params: { vehicleId: String(v.id) },
-											to: "/vehicles/$vehicleId",
-										})
-									}
-								>
-									<TableCell className="font-medium">
-										<Link
-											className="font-mono text-[13px] tracking-[0.03em] hover:underline"
-											onClick={(e) => e.stopPropagation()}
-											params={{ vehicleId: String(v.id) }}
-											to="/vehicles/$vehicleId"
-										>
-											{v.registrationNumber}
-										</Link>
-									</TableCell>
-									<TableCell>
-										{[v.make, v.model].filter(Boolean).join(" ") || "—"}
-									</TableCell>
-									<TableCell className="tabular">{v.year ?? "—"}</TableCell>
-									<TableCell>
-										{v.fuelType ? (
-											<Badge variant="secondary">{v.fuelType}</Badge>
-										) : (
-											"—"
-										)}
-									</TableCell>
-									<TableCell>
-										<ExpiryBadge date={v.insuranceValidTill} />
-									</TableCell>
-									<TableCell onClick={(e) => e.stopPropagation()}>
-										<DropdownMenu>
-											<DropdownMenuTrigger
-												aria-label={`Actions for ${v.registrationNumber}`}
-												render={
-													<Button size="icon-xs" type="button" variant="ghost">
-														<MoreHorizontal className="size-4" />
-													</Button>
-												}
-											/>
-											<DropdownMenuContent align="end">
-												<DropdownMenuItem
-													onClick={() =>
-														navigate({
-															params: { vehicleId: String(v.id) },
-															to: "/vehicles/$vehicleId",
-														})
-													}
-												>
-													<Eye className="size-4" />
-													View details
-												</DropdownMenuItem>
-												<DropdownMenuItem onClick={() => handleEdit(v)}>
-													<Pencil className="size-4" />
-													Edit
-												</DropdownMenuItem>
-												<PuccCertificateMenuItem
-													registrationNumber={v.registrationNumber}
-													vehicleId={v.id}
-													vin={v.vin}
-												/>
-												<DropdownMenuItem
-													className="text-destructive"
-													onClick={() => deleteMutation.mutate({ id: v.id })}
-												>
-													<Trash2 className="size-4" />
-													Delete
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
+				<VehiclesTable
+					onDelete={(id) => deleteMutation.mutate({ id })}
+					onEdit={(v) =>
+						handleEdit(
+							v as unknown as { id: number; registrationNumber: string },
+						)
+					}
+					vehicles={vehicles}
+				/>
 			)}
 		</div>
 	);
-}
-
-function sourceLabel(source: string) {
-	switch (source) {
-		case "database":
-			return "your garage";
-		case "cache":
-			return "cache";
-		case "apiexpress":
-			return "APIExpress";
-		case "cashfree":
-			return "Cashfree";
-		default:
-			return source;
-	}
 }
 
 function AutofilledHint() {
@@ -743,43 +719,3 @@ function AutofilledHint() {
 		</span>
 	);
 }
-
-export function ExpiryBadge({ date }: { date: Date | null }) {
-	if (!date) return <span className="text-muted-foreground">—</span>;
-	const daysLeft = Math.ceil(
-		(date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-	);
-	if (daysLeft < 0) return <Badge variant="destructive">Expired</Badge>;
-	if (daysLeft <= 30) return <Badge variant="destructive">{daysLeft}d</Badge>;
-	if (daysLeft <= 90)
-		return (
-			<Badge
-				className="border-warning/20 bg-warning/10 text-warning dark:bg-warning/10"
-				variant="secondary"
-			>
-				{daysLeft}d
-			</Badge>
-		);
-	return <Badge variant="secondary">{daysLeft}d</Badge>;
-}
-
-function toDateInput(date: Date | string): string {
-	const d = date instanceof Date ? date : new Date(date);
-	if (Number.isNaN(d.getTime())) return "";
-	return d.toISOString().slice(0, 10);
-}
-
-type VehicleForm = {
-	id?: number;
-	registrationNumber: string;
-	make: string;
-	model: string;
-	year: string;
-	color: string;
-	fuelType: string;
-	registrationDate: string;
-	vin: string;
-	fitnessValidTill: string;
-	insuranceValidTill: string;
-	pollutionValidTill: string;
-};

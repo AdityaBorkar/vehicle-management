@@ -24,8 +24,10 @@ export {
 	getCashfreePublicKey,
 } from "./config";
 export { CashfreeError, isCashfreeError } from "./errors";
+export type { EnrichedRcLookup } from "./mapping";
 export {
 	mapCashfreeResponseToLookup,
+	mapEnrichedRcResponse,
 	mapRcResponseToLookup,
 } from "./mapping";
 export { buildSignatureData, generateCfSignature } from "./signature";

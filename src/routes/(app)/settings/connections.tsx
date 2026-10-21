@@ -41,7 +41,7 @@ function ConnectionsPage() {
 	return (
 		<div className="space-y-8">
 			<PageHeader
-				description="Link GPS trackers, FASTag and diesel cards to each vehicle. Everything stays attached to the asset it belongs to."
+				description="Link GPS trackers and FASTag to each vehicle. Everything stays attached to the asset it belongs to."
 				eyebrow="Account / Connections"
 				title="Connections"
 			/>
@@ -49,7 +49,7 @@ function ConnectionsPage() {
 
 			{vehicles.length === 0 ? (
 				<EmptyState
-					description="Add a vehicle first, then link its GPS, FASTag or diesel card."
+					description="Add a vehicle first, then link its GPS or FASTag."
 					icon={Link2}
 					title="No vehicles yet"
 				/>
@@ -79,10 +79,9 @@ function ConnectionsPage() {
 					</div>
 
 					{Number.isFinite(selectedId) && selectedId > 0 ? (
-						<div className="grid gap-6 md:grid-cols-3">
+						<div className="grid gap-6 md:grid-cols-2">
 							<GpsCard vehicleId={selectedId} />
 							<FastagCard vehicleId={selectedId} />
-							<DieselCard vehicleId={selectedId} />
 						</div>
 					) : (
 						<div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-muted-foreground text-sm">
@@ -285,86 +284,6 @@ function FastagCard({ vehicleId }: { vehicleId: number }) {
 					/>
 					<Button
 						aria-label="Link FASTag"
-						disabled={create.isPending}
-						size="icon"
-						type="submit"
-					>
-						<Plus className="h-4 w-4" />
-					</Button>
-				</form>
-			</CardContent>
-		</Card>
-	);
-}
-
-function DieselCard({ vehicleId }: { vehicleId: number }) {
-	const queryClient = useQueryClient();
-	const { data } = useQuery(
-		orpc.dieselCard.list.queryOptions({ input: { vehicleId } }),
-	);
-	const create = useMutation(
-		orpc.dieselCard.create.mutationOptions({
-			onError: (err) => toast.error(err.message),
-			onSuccess: () => {
-				queryClient.invalidateQueries({
-					queryKey: orpc.dieselCard.list.key({ input: { vehicleId } }),
-				});
-				toast.success("Diesel card linked");
-			},
-		}),
-	);
-	const remove = useMutation(
-		orpc.dieselCard.remove.mutationOptions({
-			onError: (err) => toast.error(err.message),
-			onSuccess: () => {
-				queryClient.invalidateQueries({
-					queryKey: orpc.dieselCard.list.key({ input: { vehicleId } }),
-				});
-				toast.success("Diesel card removed");
-			},
-		}),
-	);
-
-	const cards = data ?? [];
-
-	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="text-base">Diesel Cards</CardTitle>
-			</CardHeader>
-			<CardContent className="space-y-3">
-				{cards.length === 0 && (
-					<p className="text-muted-foreground text-sm">None linked</p>
-				)}
-				{cards.map((c) => (
-					<DeviceRow
-						active={c.isActive}
-						deleteLabel={`Remove diesel card ${c.cardNumber}`}
-						key={c.id}
-						label={c.cardNumber}
-						onDelete={() => remove.mutate({ id: c.id })}
-						sub={c.provider}
-					/>
-				))}
-				<form
-					className="flex gap-2"
-					onSubmit={(e) => {
-						e.preventDefault();
-						const fd = new FormData(e.currentTarget);
-						const cardNumber = (fd.get("cardNumber") as string).trim();
-						if (!cardNumber) return;
-						create.mutate({ cardNumber, vehicleId });
-						e.currentTarget.reset();
-					}}
-				>
-					<Input
-						aria-label="New diesel card number"
-						name="cardNumber"
-						placeholder="Card number"
-						required
-					/>
-					<Button
-						aria-label="Link diesel card"
 						disabled={create.isPending}
 						size="icon"
 						type="submit"

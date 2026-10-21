@@ -13,6 +13,11 @@
  * 3. Callers poll `getWorkflowRun()` / `listWorkflowRuns()` (via the
  *    `workflow` oRPC namespace) until terminal state.
  *
+ * Observability (Spec 02): every run mirrors into `debug.workflows`,
+ * per-action trail into `debug.browser_automation_steps`, console/engine
+ * lines into `debug.logs`, and CAPTCHA AI calls into `debug.llm_requests`.
+ * All writes are best-effort and never fail the run.
+ *
  * Concurrency is 1: the PUC portal actively blocks multiple tabs via
  * BroadcastChannel, and a single persistent Chrome profile cannot safely
  * run parallel automations. If parallel browsers are ever needed, shard by
@@ -26,12 +31,21 @@
 
 import { and, desc, eq } from "drizzle-orm";
 
-import { workflowRuns } from "#/db-schema";
+import { workflowDebugs, workflowRuns } from "#/db-schema";
 import { db } from "#/lib/db";
 import type { ArtifactStore } from "./artifact-store";
-import { artifactStore } from "./artifact-store";
+import { getArtifactStore } from "./artifact-store";
 import type { CaptchaSolver } from "./captcha";
-import { solveCaptchaWithMetaAi } from "./captcha";
+import { MIN_CAPTCHA_CONFIDENCE, solveCaptchaWithMetaAi } from "./captcha";
+import { markLatestLlmRejected, recordLlmRequest } from "./captcha-ledger";
+import {
+	clearRunSeq,
+	finalizeVideo,
+	recordLog,
+	recordStep,
+	recordWarning,
+	runStep,
+} from "./observability";
 
 export type WorkflowStatus = "queued" | "running" | "succeeded" | "failed";
 
@@ -51,9 +65,28 @@ export interface WorkflowRunRecord {
 	workflowName: string;
 }
 
+export interface WorkflowEventHelpers {
+	/** Record an info line to debug.logs + console. */
+	log: (message: string, meta?: Record<string, unknown>) => void;
+	/** Wrap an action as an auditable ok/error step. */
+	step: <T>(
+		kind: string,
+		label: string,
+		fn: () => Promise<T>,
+		opts?: { attempt?: number | undefined },
+	) => Promise<T>;
+	/** Record a warn step (re-performed event that may later succeed). */
+	warn: (
+		label: string,
+		message: string,
+		opts?: { attempt?: number | undefined; kind?: string | undefined },
+	) => void;
+}
+
 export interface WorkflowContext<I = Record<string, unknown>> {
 	artifactStore: ArtifactStore;
 	captchaSolver: CaptchaSolver;
+	events: WorkflowEventHelpers;
 	input: I;
 	log: (...args: unknown[]) => void;
 	runId: number;
@@ -66,9 +99,73 @@ export interface WorkflowSuccess {
 	output?: Record<string, unknown>;
 }
 
+export type WorkflowInputFieldType =
+	| "registrationNumber"
+	| "chassisLast5"
+	| "vehicleId"
+	| "text"
+	| "number";
+
+export interface WorkflowInputField {
+	help?: string | undefined;
+	label: string;
+	name: string;
+	placeholder?: string | undefined;
+	required: boolean;
+	type: WorkflowInputFieldType;
+	validate?: ((v: string) => string | null) | undefined;
+}
+
+export interface WorkflowDefinitionMeta {
+	description: string;
+	displayName: string;
+	fields: WorkflowInputField[];
+}
+
+export interface ZodSafeParseSchema {
+	safeParse: (v: unknown) => {
+		success: boolean;
+		data?: unknown;
+		error?: unknown;
+	};
+}
+
+/**
+ * Validate raw workflow input against the definition's zod schema and
+ * return the parsed (typed) value. Definitions with no schema pass the raw
+ * record through. Throws on validation failure — callers (engine `run`,
+ * `startRun`) share this instead of hand-rolling coercion.
+ */
+export function parseWorkflowInput<T>(
+	schema: ZodSafeParseSchema | unknown,
+	raw: Record<string, unknown>,
+): T {
+	if (
+		typeof schema === "object" &&
+		schema !== null &&
+		"safeParse" in schema &&
+		typeof (schema as ZodSafeParseSchema).safeParse === "function"
+	) {
+		const result = (schema as ZodSafeParseSchema).safeParse(raw);
+		if (!result.success) {
+			const err = result.error as
+				| { issues?: { message: string; path: (string | number)[] }[] }
+				| undefined;
+			const detail = (err?.issues ?? [])
+				.map((i) => `${String(i.path[0] ?? "_form")}: ${i.message}`)
+				.join("; ");
+			throw new Error(`Invalid workflow input${detail ? `: ${detail}` : ""}`);
+		}
+		return result.data as T;
+	}
+	return raw as unknown as T;
+}
+
 export interface WorkflowDefinition<
 	I extends Record<string, unknown> = Record<string, unknown>,
 > {
+	inputSchema?: ZodSafeParseSchema | unknown;
+	meta?: WorkflowDefinitionMeta | undefined;
 	name: string;
 	run: (ctx: WorkflowContext<I>) => Promise<WorkflowSuccess>;
 }
@@ -89,6 +186,26 @@ export function listWorkflowDefinitions(): string[] {
 	return [...registry.keys()];
 }
 
+export function getWorkflowMetadata(): (WorkflowDefinitionMeta & {
+	name: string;
+})[] {
+	return [...registry.values()].map((def) => ({
+		description: def.meta?.description ?? `Run ${def.name}`,
+		displayName: def.meta?.displayName ?? def.name,
+		// Strip `validate` fns: the client gets fields + required flags only;
+		// canonical validation lives server-side in `startRun` + zod schemas.
+		fields: (def.meta?.fields ?? []).map((f) => ({
+			help: f.help,
+			label: f.label,
+			name: f.name,
+			placeholder: f.placeholder,
+			required: f.required,
+			type: f.type,
+		})),
+		name: def.name,
+	}));
+}
+
 function toRecord(row: typeof workflowRuns.$inferSelect): WorkflowRunRecord {
 	return {
 		artifactPath: row.artifactPath,
@@ -105,6 +222,39 @@ function toRecord(row: typeof workflowRuns.$inferSelect): WorkflowRunRecord {
 		vehicleId: row.vehicleId,
 		workflowName: row.workflowName,
 	};
+}
+
+async function insertDebugWorkflow(input: {
+	runId: number;
+	userId: string;
+	vehicleId: number | null;
+	workflowName: string;
+}): Promise<void> {
+	try {
+		await db.insert(workflowDebugs).values({
+			runId: input.runId,
+			status: "queued",
+			userId: input.userId,
+			vehicleId: input.vehicleId,
+			workflowName: input.workflowName,
+		});
+	} catch (err) {
+		console.error("[workflows] insertDebugWorkflow failed:", err);
+	}
+}
+
+async function updateDebugWorkflow(
+	runId: number,
+	patch: Partial<typeof workflowDebugs.$inferInsert>,
+): Promise<void> {
+	try {
+		await db
+			.update(workflowDebugs)
+			.set(patch)
+			.where(eq(workflowDebugs.runId, runId));
+	} catch (err) {
+		console.error("[workflows] updateDebugWorkflow failed:", err);
+	}
 }
 
 export async function enqueueWorkflowRun(input: {
@@ -128,6 +278,12 @@ export async function enqueueWorkflowRun(input: {
 		})
 		.returning();
 	if (!row) throw new Error("Failed to enqueue workflow run.");
+	void insertDebugWorkflow({
+		runId: row.id,
+		userId: input.userId,
+		vehicleId: input.vehicleId ?? null,
+		workflowName: input.workflowName,
+	});
 	// Fire-and-forget: the RPC response must not wait for the browser.
 	void pumpQueue().catch((err) => {
 		console.error(`[workflows] pump failed after enqueue #${row.id}:`, err);
@@ -151,6 +307,12 @@ async function claimNextQueued(): Promise<
 		.set({ startedAt: new Date(), status: "running", updatedAt: new Date() })
 		.where(and(eq(workflowRuns.id, next.id), eq(workflowRuns.status, "queued")))
 		.returning();
+	if (claimed) {
+		void updateDebugWorkflow(claimed.id, {
+			startedAt: new Date(),
+			status: "running",
+		});
+	}
 	return claimed ?? null;
 }
 
@@ -170,6 +332,45 @@ export async function pumpQueue(): Promise<void> {
 	}
 }
 
+/** Per-run CAPTCHA solver that ledgers every AI call into debug.llm_requests. */
+function createObservedCaptchaSolver(input: {
+	base?: CaptchaSolver | undefined;
+	runId: number;
+	userId: string;
+}): CaptchaSolver {
+	const base = input.base ?? solveCaptchaWithMetaAi;
+	return async (image, opts) => {
+		const startedAt = Date.now();
+		try {
+			const solution = await base(image, opts);
+			const lowConfidence =
+				typeof solution.confidence === "number" &&
+				solution.confidence < MIN_CAPTCHA_CONFIDENCE;
+			void recordLlmRequest({
+				image,
+				latencyMs: Date.now() - startedAt,
+				parsedCode: solution.code,
+				parsedConfidence: solution.confidence,
+				rawText: solution.raw,
+				runId: input.runId,
+				status: lowConfidence ? "low-confidence" : "success",
+				userId: input.userId,
+			});
+			return solution;
+		} catch (err) {
+			void recordLlmRequest({
+				error: err instanceof Error ? err.message : String(err),
+				image,
+				latencyMs: Date.now() - startedAt,
+				runId: input.runId,
+				status: "error",
+				userId: input.userId,
+			});
+			throw err;
+		}
+	};
+}
+
 async function executeRun(runId: number): Promise<void> {
 	const [row] = await db
 		.select()
@@ -178,15 +379,28 @@ async function executeRun(runId: number): Promise<void> {
 	if (!row) return;
 	const def = registry.get(row.workflowName);
 	if (!def) {
+		const message = `Unknown workflow "${row.workflowName}".`;
 		await db
 			.update(workflowRuns)
 			.set({
-				error: `Unknown workflow "${row.workflowName}".`,
+				error: message,
 				finishedAt: new Date(),
 				status: "failed",
 				updatedAt: new Date(),
 			})
 			.where(eq(workflowRuns.id, runId));
+		void updateDebugWorkflow(runId, {
+			completedAt: new Date(),
+			status: "failed",
+		});
+		void recordStep({
+			kind: "error",
+			label: "Unknown workflow",
+			message,
+			runId,
+			status: "error",
+			userId: row.userId,
+		});
 		return;
 	}
 	const attempts = (row.attempts ?? 0) + 1;
@@ -195,13 +409,66 @@ async function executeRun(runId: number): Promise<void> {
 		.set({ attempts, updatedAt: new Date() })
 		.where(eq(workflowRuns.id, runId));
 
-	const ctx: WorkflowContext = {
-		artifactStore,
-		captchaSolver: solveCaptchaWithMetaAi,
-		input: row.input,
-		log: (...args: unknown[]) => {
-			console.log(`[workflows] ${row.workflowName} #${runId}`, ...args);
+	const logRecord = (
+		message: string,
+		meta?: Record<string, unknown> | undefined,
+	) => {
+		console.log(`[workflows] ${row.workflowName} #${runId}`, message);
+		void recordLog({
+			level: "info",
+			message,
+			meta,
+			runId,
+			source: "workflow",
+			userId: row.userId,
+		});
+	};
+
+	const events: WorkflowEventHelpers = {
+		log: (message, meta) => {
+			logRecord(message, meta);
 		},
+		step: (kind, label, fn, opts) =>
+			runStep({
+				attempt: opts?.attempt ?? 1,
+				fn,
+				kind,
+				label,
+				runId,
+				userId: row.userId,
+			}),
+		warn: (label, message, opts) => {
+			logRecord(`WARN ${label}: ${message}`);
+			void recordWarning({
+				attempt: opts?.attempt ?? 1,
+				kind: opts?.kind ?? "retry",
+				label,
+				message,
+				runId,
+				userId: row.userId,
+			});
+			if (opts?.kind === "captcha_rejected") {
+				void markLatestLlmRejected({ message, runId, userId: row.userId });
+			}
+		},
+	};
+
+	const logFn = (...args: unknown[]) => {
+		const message = args
+			.map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
+			.join(" ");
+		logRecord(message.slice(0, 8000));
+	};
+
+	const ctx: WorkflowContext = {
+		artifactStore: getArtifactStore(),
+		captchaSolver: createObservedCaptchaSolver({
+			runId,
+			userId: row.userId,
+		}),
+		events,
+		input: row.input,
+		log: logFn,
 		runId,
 		userId: row.userId,
 		vehicleId: row.vehicleId,
@@ -219,6 +486,17 @@ async function executeRun(runId: number): Promise<void> {
 				updatedAt: new Date(),
 			})
 			.where(eq(workflowRuns.id, runId));
+		void updateDebugWorkflow(runId, {
+			completedAt: new Date(),
+			status: "succeeded",
+		});
+		// Best-effort video finalization (Spec 02).
+		try {
+			await finalizeVideo(runId, row.userId);
+		} catch (err) {
+			console.error("[workflows] finalizeVideo failed:", err);
+		}
+		clearRunSeq(runId);
 		ctx.log("succeeded");
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -232,6 +510,36 @@ async function executeRun(runId: number): Promise<void> {
 				updatedAt: new Date(),
 			})
 			.where(eq(workflowRuns.id, runId));
+		void updateDebugWorkflow(runId, {
+			completedAt: new Date(),
+			status: "failed",
+		});
+		void recordStepLikeFailure(runId, row.userId, message);
+		try {
+			await finalizeVideo(runId, row.userId);
+		} catch {
+			// ignore
+		}
+		clearRunSeq(runId);
+	}
+}
+
+async function recordStepLikeFailure(
+	runId: number,
+	userId: string,
+	message: string,
+): Promise<void> {
+	try {
+		await recordStep({
+			kind: "error",
+			label: "Run failed",
+			message: message.slice(0, 4000),
+			runId,
+			status: "error",
+			userId,
+		});
+	} catch (err) {
+		console.error("[workflows] failure step persist failed:", err);
 	}
 }
 
@@ -307,6 +615,7 @@ export async function requeueStaleRunning(): Promise<number> {
 			.update(workflowRuns)
 			.set({ startedAt: null, status: "queued", updatedAt: new Date() })
 			.where(eq(workflowRuns.id, r.id));
+		void updateDebugWorkflow(r.id, { status: "queued" });
 	}
 	return stuck.length;
 }

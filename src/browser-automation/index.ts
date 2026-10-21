@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { type BrowserContext, chromium, type Page } from "patchright";
 
+import { ensureVideoDir } from "./observability";
 import { vahanVehicleDetails } from "./workflows/vahan-vehicle-details";
 
 export interface BrowserAutomationOptions {
@@ -43,6 +44,15 @@ class BrowserAutomation {
 		}
 
 		const headless = shouldRunHeadless(this.options.headless);
+		let recordVideo:
+			| { dir: string; size?: { height: number; width: number } }
+			| undefined;
+		try {
+			const dir = ensureVideoDir();
+			recordVideo = { dir, size: { height: 720, width: 1280 } };
+		} catch {
+			recordVideo = undefined;
+		}
 		const baseOptions = {
 			acceptDownloads: true,
 			args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -50,6 +60,7 @@ class BrowserAutomation {
 			locale: "en-IN",
 			timezoneId: "Asia/Kolkata",
 			viewport: null,
+			...(recordVideo ? { recordVideo } : {}),
 		};
 
 		this.initPromise = (async () => {
@@ -65,11 +76,23 @@ class BrowserAutomation {
 					"[browser] chrome channel launch failed, retrying with default chromium",
 					firstErr,
 				);
-				const context = await chromium.launchPersistentContext(profileDir, {
-					...baseOptions,
-				});
-				this.context = context;
-				return context;
+				// Retry without video (some channels/profiles reject recordVideo).
+				const { recordVideo: _dropped, ...withoutVideo } = baseOptions;
+				void _dropped;
+				try {
+					const context = await chromium.launchPersistentContext(profileDir, {
+						...withoutVideo,
+						channel: "chrome",
+					});
+					this.context = context;
+					return context;
+				} catch {
+					const context = await chromium.launchPersistentContext(profileDir, {
+						...withoutVideo,
+					});
+					this.context = context;
+					return context;
+				}
 			}
 		})().catch((err: unknown) => {
 			this.initPromise = null;

@@ -14,25 +14,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
+import { formatDate, formatDateTime } from "#/lib/dates";
 import { orpc } from "#/lib/rpc";
 
 interface TransactionHistoryTabProps {
 	registrationNumber: string;
 	vehicleId: number;
-}
-
-function formatDate(value: Date | string | null | undefined): string {
-	if (!value) return "—";
-	const d = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(d.getTime())) return "—";
-	return d.toLocaleDateString();
-}
-
-function formatDateTime(value: Date | string | null | undefined): string {
-	if (!value) return "—";
-	const d = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(d.getTime())) return "—";
-	return d.toLocaleString();
 }
 
 /**

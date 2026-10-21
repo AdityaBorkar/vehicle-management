@@ -16,6 +16,13 @@ export {
 	verifications,
 } from "./auth.gen";
 export { challans } from "./challan";
+export {
+	browserAutomationSteps,
+	debugLogs,
+	debugSchema,
+	llmRequests,
+	workflowDebugs,
+} from "./debug";
 export { dlVehicleClasses } from "./dl-vehicle-class";
 export { documents } from "./document";
 export { drivers } from "./driver";
@@ -23,6 +30,6 @@ export { drivingLicenses } from "./driving-license";
 export { externalApiCalls } from "./external-api-call";
 export { reminders } from "./reminder";
 export { vehicles } from "./vehicle";
-export { dieselCards, fastags, gpsDevices } from "./vehicle-device";
+export { fastags, gpsDevices } from "./vehicle-device";
 export { vehicleTransactions } from "./vehicle-transaction";
 export { workflowRuns } from "./workflow-run";

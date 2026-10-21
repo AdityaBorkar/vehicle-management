@@ -34,6 +34,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
+import { daysUntil, formatDate, toDateInput } from "#/lib/dates";
 import { orpc } from "#/lib/rpc";
 
 export const Route = createFileRoute("/(app)/drivers/$driverId")({
@@ -999,9 +1000,7 @@ export function DetailRow({
 }
 
 export function DlExpiryBadge({ date }: { date: Date }) {
-	const daysLeft = Math.ceil(
-		(date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-	);
+	const daysLeft = daysUntil(date);
 	if (daysLeft < 0) return <Badge variant="destructive">Expired</Badge>;
 	if (daysLeft <= 30) return <Badge variant="destructive">{daysLeft}d</Badge>;
 	if (daysLeft <= 90)
@@ -1014,13 +1013,4 @@ export function DlExpiryBadge({ date }: { date: Date }) {
 			</Badge>
 		);
 	return <Badge variant="secondary">{daysLeft}d</Badge>;
-}
-
-function formatDate(date: Date | null | undefined) {
-	if (!date) return null;
-	return new Date(date).toLocaleDateString();
-}
-
-function toDateInput(date: Date): string {
-	return date.toISOString().slice(0, 10);
 }

@@ -1,5 +1,9 @@
 import type { Page } from "patchright";
 
+import { normalizeRegistrationNumber } from "#/lib/vehicle-registration";
+
+export { normalizeRegistrationNumber };
+
 export const VAHAN_HOMEPAGE_URL =
 	"https://vahan.parivahan.gov.in/vahanservice/vahan/ui/statevalidation/homepage.xhtml";
 
@@ -22,16 +26,6 @@ export interface VahanLoginResult {
 	currentUrl: string;
 	/** Normalized registration number that was entered. */
 	registrationNumber: string;
-}
-
-export function normalizeRegistrationNumber(value: string): string {
-	const normalized = value.toUpperCase().replace(/[\s-]+/g, "");
-	if (!/^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4}$/.test(normalized)) {
-		throw new Error(
-			`Invalid registrationNumber: "${value}". Expected format like "MH01CR7464".`,
-		);
-	}
-	return normalized;
 }
 
 async function dismissPromoDialog(

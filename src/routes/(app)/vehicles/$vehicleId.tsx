@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +18,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
+import { daysUntil, formatDate } from "#/lib/dates";
 import { orpc } from "#/lib/rpc";
 import { cn } from "#/lib/utils";
 
@@ -41,9 +42,6 @@ function VehicleDetailPage() {
 	const { data: fastags } = useQuery(
 		orpc.fastag.list.queryOptions({ input: { vehicleId } }),
 	);
-	const { data: dieselCards } = useQuery(
-		orpc.dieselCard.list.queryOptions({ input: { vehicleId } }),
-	);
 	const { data: allDocuments } = useQuery(orpc.document.list.queryOptions());
 
 	const complianceDocs = useMemo(
@@ -57,6 +55,18 @@ function VehicleDetailPage() {
 			onSuccess: () => {
 				queryClient.invalidateQueries({ queryKey: orpc.vehicle.list.key() });
 				toast.success("Vehicle deleted");
+			},
+		}),
+	);
+	const syncRcMutation = useMutation(
+		orpc.vehicle.syncRc.mutationOptions({
+			onError: (err) => toast.error(err.message),
+			onSuccess: () => {
+				queryClient.invalidateQueries({ queryKey: orpc.vehicle.list.key() });
+				queryClient.invalidateQueries({
+					queryKey: orpc.vehicle.getById.key({ input: { id: vehicleId } }),
+				});
+				toast.success("RC details synced from Cashfree");
 			},
 		}),
 	);
@@ -109,6 +119,17 @@ function VehicleDetailPage() {
 							vehicleId={vehicle.id}
 							vin={vehicle.vin}
 						/>
+						<Button
+							disabled={syncRcMutation.isPending}
+							onClick={() => syncRcMutation.mutate({ vehicleId: vehicle.id })}
+							size="sm"
+							title="Re-run Cashfree RC lookup and write every mapped field back to this vehicle"
+							type="button"
+							variant="outline"
+						>
+							<RefreshCw className="size-4" />
+							{syncRcMutation.isPending ? "Syncing RC…" : "Sync RC"}
+						</Button>
 						<Button
 							className="border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
 							disabled={deleteMutation.isPending}
@@ -259,9 +280,7 @@ function VehicleDetailPage() {
 
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">
-									FASTag & Diesel Card
-								</CardTitle>
+								<CardTitle className="text-base">FASTag</CardTitle>
 							</CardHeader>
 							<CardContent className="space-y-4">
 								{fastags && fastags.length > 0 ? (
@@ -288,32 +307,6 @@ function VehicleDetailPage() {
 								) : (
 									<p className="text-muted-foreground text-sm">
 										No FASTag linked
-									</p>
-								)}
-								{dieselCards && dieselCards.length > 0 ? (
-									<div className="space-y-2 text-sm">
-										{dieselCards.map((c) => (
-											<div
-												className="flex items-center justify-between"
-												key={c.id}
-											>
-												<span>Diesel Card: {c.cardNumber}</span>
-												<div className="flex items-center gap-2">
-													{c.provider && (
-														<span className="text-muted-foreground">
-															{c.provider}
-														</span>
-													)}
-													<Badge variant={c.isActive ? "default" : "secondary"}>
-														{c.isActive ? "Active" : "Inactive"}
-													</Badge>
-												</div>
-											</div>
-										))}
-									</div>
-								) : (
-									<p className="text-muted-foreground text-sm">
-										No diesel card linked
 									</p>
 								)}
 							</CardContent>
@@ -354,8 +347,18 @@ function VehicleDetailPage() {
 											<TableCell>{formatDate(doc.issueDate) ?? "—"}</TableCell>
 											<TableCell>
 												<div className="flex items-center gap-2">
-													<span>{formatDate(doc.expiryDate) ?? "—"}</span>
-													{doc.applicable && doc.expiryDate ? (
+													<span>
+														{formatDate(doc.expiryDate) ??
+															(doc.kind === "goods_permit" ||
+															doc.kind === "speed_governor" ? (
+																<Badge variant="secondary">No expiry</Badge>
+															) : (
+																"—"
+															))}
+													</span>
+													{doc.applicable &&
+													doc.expiryDate &&
+													doc.kind !== "purchase_order" ? (
 														<ExpiryBadge date={doc.expiryDate} />
 													) : null}
 												</div>
@@ -393,20 +396,13 @@ export function DetailRow({
 }
 
 export function ExpiryBadge({ date }: { date: Date }) {
-	const daysLeft = Math.ceil(
-		(date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-	);
+	const daysLeft = daysUntil(date);
 	if (daysLeft < 0) return <Badge variant="destructive">Expired</Badge>;
 	if (daysLeft <= 30)
 		return <Badge variant="destructive">{daysLeft}d left</Badge>;
 	if (daysLeft <= 90)
 		return <Badge variant="secondary">{daysLeft}d left</Badge>;
 	return null;
-}
-
-function formatDate(date: Date | null | undefined) {
-	if (!date) return null;
-	return new Date(date).toLocaleDateString();
 }
 
 const COMPLIANCE_DOCS = [
@@ -416,6 +412,10 @@ const COMPLIANCE_DOCS = [
 	{ kind: "pollution", name: "Pollution (PUC)" },
 	{ kind: "permit", name: "Permit" },
 	{ kind: "tax", name: "Tax" },
+	{ kind: "goods_permit", name: "Goods Permit" },
+	{ kind: "speed_governor", name: "Speed Governor Certificate" },
+	{ kind: "purchase_order", name: "Purchase Order" },
+	{ kind: "form20", name: "Form 20 (Sale/Purchase)" },
 ] as const;
 
 type ComplianceKind = (typeof COMPLIANCE_DOCS)[number]["kind"];
@@ -467,10 +467,14 @@ function buildComplianceDocs(
 		{ from: Date | null; till: Date | null }
 	> = {
 		fitness: { from: null, till: vehicle?.fitnessValidTill ?? null },
+		form20: { from: null, till: null },
+		goods_permit: { from: null, till: null },
 		insurance: { from: null, till: vehicle?.insuranceValidTill ?? null },
 		permit: { from: null, till: null },
 		pollution: { from: null, till: vehicle?.pollutionValidTill ?? null },
+		purchase_order: { from: null, till: null },
 		registration: { from: vehicle?.registrationDate ?? null, till: null },
+		speed_governor: { from: null, till: null },
 		tax: { from: null, till: null },
 	};
 

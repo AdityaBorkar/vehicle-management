@@ -4,27 +4,67 @@ import { z } from "zod";
 
 import { externalApiCalls, vehicles } from "#/db-schema";
 import {
+	buildVerificationId,
 	CASHFREE_ENDPOINT_PATH,
 	isCashfreeError,
-	mapRcResponseToLookup,
+	mapEnrichedRcResponse,
 	verifyRc,
 } from "#/lib/cashfree/server";
 import { db } from "#/lib/db";
-import { formatVin } from "#/lib/utils";
+import { normalizeRegistrationNumber } from "#/lib/vehicle-registration";
 import { protectedProcedure } from "../base";
 import { snapshotSupersededDocument } from "./document-history";
 
+const rcTextField = z.string().optional();
+const rcDateField = z.coerce.date().optional();
+
 const vehicleFields = {
+	bodyType: rcTextField,
 	color: z.string().optional(),
+	cubicCapacity: rcTextField,
+	emissionNorms: rcTextField,
+	fatherName: rcTextField,
+	financer: rcTextField,
+	fitnessNumber: rcTextField,
+	fitnessValidFrom: rcDateField,
 	fitnessValidTill: z.coerce.date().optional(),
 	fuelType: z.enum(["Diesel", "Petrol", "CNG", "EV", "Other"]).optional(),
+	fuelTypeRaw: rcTextField,
+	grossVehicleWeightKg: rcTextField,
+	hypothecatedTo: rcTextField,
+	hypothecation: rcTextField,
+	insuranceCompany: rcTextField,
+	insurancePolicyNo: rcTextField,
+	insuranceValidFrom: rcDateField,
 	insuranceValidTill: z.coerce.date().optional(),
 	make: z.string().optional(),
+	manufacturerModel: rcTextField,
+	manufacturingMonthYear: rcTextField,
+	mobileNumber: rcTextField,
 	model: z.string().optional(),
+	officeCode: rcTextField,
+	ownerName: rcTextField,
+	ownershipSrNo: rcTextField,
+	ownershipType: rcTextField,
+	permanentAddress: rcTextField,
+	permitNumber: rcTextField,
+	permitType: rcTextField,
+	permitValidFrom: rcDateField,
+	permitValidTill: rcDateField,
 	pollutionValidTill: z.coerce.date().optional(),
+	presentAddress: rcTextField,
+	pucNumber: rcTextField,
+	registrationAuthority: rcTextField,
 	registrationDate: z.coerce.date().optional(),
 	registrationNumber: z.string().min(1),
+	rtoCode: rcTextField,
+	rtoName: rcTextField,
+	seatingCapacity: rcTextField,
+	taxValidTill: rcDateField,
+	unladenWeightKg: rcTextField,
+	vehicleClass: rcTextField,
 	vin: z.string().optional(),
+	wheelbase: rcTextField,
 	year: z.number().int().min(1900).max(2100).optional(),
 };
 
@@ -35,12 +75,17 @@ const vehicleInputSchema = z.object({
 
 const vehicleUpdateSchema = z.object({
 	...vehicleFields,
+	fitnessValidFrom: z.coerce.date().optional().nullable(),
 	fitnessValidTill: z.coerce.date().optional().nullable(),
 	id: z.number().int(),
+	insuranceValidFrom: z.coerce.date().optional().nullable(),
 	insuranceValidTill: z.coerce.date().optional().nullable(),
+	permitValidFrom: z.coerce.date().optional().nullable(),
+	permitValidTill: z.coerce.date().optional().nullable(),
 	pollutionValidTill: z.coerce.date().optional().nullable(),
 	registrationDate: z.coerce.date().optional().nullable(),
 	registrationNumber: z.string().min(1).optional(),
+	taxValidTill: z.coerce.date().optional().nullable(),
 	vin: z.string().optional().nullable(),
 });
 
@@ -69,16 +114,12 @@ export const create = protectedProcedure
 	.handler(async ({ context, input }) => {
 		let registrationNumber: string;
 		try {
-			registrationNumber = formatVin(input.registrationNumber);
+			registrationNumber = normalizeRegistrationNumber(
+				input.registrationNumber,
+			);
 		} catch (err) {
 			throw new ORPCError("BAD_REQUEST", {
 				message: err instanceof Error ? err.message : "Invalid VIN.",
-			});
-		}
-		if (!/^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4}$/.test(registrationNumber)) {
-			throw new ORPCError("BAD_REQUEST", {
-				message:
-					'Invalid registration number. Expected format like "MH01CR7464".',
 			});
 		}
 		try {
@@ -257,22 +298,156 @@ function orpcCodeForProviderStatus(httpStatus: number): ProviderErrorCode {
 	);
 }
 
+function toDbDateOnly(value: string | null | undefined): Date | null {
+	if (!value) return null;
+	const d = new Date(value.length === 10 ? `${value}T00:00:00Z` : value);
+	return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function toLookupResponse(
+	normalized: string,
+	fields: ReturnType<typeof mapEnrichedRcResponse>,
+	source: "cashfree" | "cache",
+) {
+	return {
+		bodyType: fields.bodyType,
+		color: fields.color,
+		cubicCapacity: fields.cubicCapacity,
+		emissionNorms: fields.emissionNorms,
+		fatherName: fields.fatherName,
+		fetchedAt: new Date().toISOString(),
+		financer: fields.financer,
+		fitnessNumber: fields.fitnessNumber,
+		fitnessValidFrom: fields.fitnessValidFrom,
+		fitnessValidTill: fields.fitnessValidTill,
+		fuelType: normalizeFuelType(fields.fuelType),
+		fuelTypeRaw: fields.fuelTypeRaw,
+		grossVehicleWeightKg: fields.grossVehicleWeightKg,
+		hypothecatedTo: fields.hypothecatedTo,
+		hypothecation: fields.hypothecation,
+		insuranceCompany: fields.insuranceCompany,
+		insurancePolicyNo: fields.insurancePolicyNo,
+		insuranceValidFrom: fields.insuranceValidFrom,
+		insuranceValidTill: fields.insuranceValidTill,
+		make: fields.make,
+		manufacturerModel: fields.manufacturerModel,
+		manufacturingMonthYear: fields.manufacturingMonthYear,
+		mobileNumber: fields.mobileNumber,
+		model: fields.model,
+		officeCode: fields.officeCode,
+		ownerName: fields.ownerName,
+		ownershipSrNo: fields.ownershipSrNo,
+		ownershipType: fields.ownershipType,
+		permanentAddress: fields.permanentAddress,
+		permitNumber: fields.permitNumber,
+		permitType: fields.permitType,
+		permitValidFrom: fields.permitValidFrom,
+		permitValidTill: fields.permitValidTill,
+		pollutionValidTill: fields.pollutionValidTill,
+		presentAddress: fields.presentAddress,
+		pucNumber: fields.pucNumber,
+		rcRaw: fields.rcRaw,
+		rcStatus: fields.rcStatus,
+		registrationAuthority: fields.registrationAuthority,
+		registrationDate: fields.registrationDate,
+		registrationNumber: normalized,
+		rtoCode: fields.rtoCode,
+		rtoName: fields.rtoName,
+		seatingCapacity: fields.seatingCapacity,
+		source,
+		taxValidTill: fields.taxValidTill,
+		unladenWeightKg: fields.unladenWeightKg,
+		vehicleClass: fields.vehicleClass,
+		verificationId: fields.verificationId,
+		vin: fields.vin,
+		wheelbase: fields.wheelbase,
+		year: fields.year,
+	};
+}
+
+function toVehicleColumns(
+	fields: ReturnType<typeof mapEnrichedRcResponse>,
+	verificationId: string | null,
+) {
+	return {
+		bodyType: fields.bodyType,
+		color: fields.color,
+		cubicCapacity: fields.cubicCapacity,
+		emissionNorms: fields.emissionNorms,
+		fatherName: fields.fatherName,
+		financer: fields.financer,
+		fitnessNumber: fields.fitnessNumber,
+		fitnessValidFrom: toDbDateOnly(fields.fitnessValidFrom),
+		fitnessValidTill: toDbDateOnly(fields.fitnessValidTill),
+		fuelTypeRaw: fields.fuelTypeRaw,
+		grossVehicleWeightKg: fields.grossVehicleWeightKg,
+		hypothecatedTo: fields.hypothecatedTo,
+		hypothecation: fields.hypothecation,
+		insuranceCompany: fields.insuranceCompany,
+		insurancePolicyNo: fields.insurancePolicyNo,
+		insuranceValidFrom: toDbDateOnly(fields.insuranceValidFrom),
+		insuranceValidTill: toDbDateOnly(fields.insuranceValidTill),
+		make: fields.make,
+		manufacturerModel: fields.manufacturerModel,
+		manufacturingMonthYear: fields.manufacturingMonthYear,
+		mobileNumber: fields.mobileNumber,
+		model: fields.model,
+		officeCode: fields.officeCode,
+		ownerName: fields.ownerName,
+		ownershipSrNo: fields.ownershipSrNo,
+		ownershipType: fields.ownershipType,
+		permanentAddress: fields.permanentAddress,
+		permitNumber: fields.permitNumber,
+		permitType: fields.permitType,
+		permitValidFrom: toDbDateOnly(fields.permitValidFrom),
+		permitValidTill: toDbDateOnly(fields.permitValidTill),
+		pollutionValidTill: toDbDateOnly(fields.pollutionValidTill),
+		presentAddress: fields.presentAddress,
+		pucNumber: fields.pucNumber,
+		rcFetchedAt: new Date(),
+		rcProvider: "cashfree",
+		rcRaw: fields.rcRaw,
+		rcStatus: fields.rcStatus,
+		registrationAuthority: fields.registrationAuthority,
+		registrationDate: toDbDateOnly(fields.registrationDate),
+		rtoCode: fields.rtoCode,
+		rtoName: fields.rtoName,
+		seatingCapacity: fields.seatingCapacity,
+		taxValidTill: toDbDateOnly(fields.taxValidTill),
+		unladenWeightKg: fields.unladenWeightKg,
+		updatedAt: new Date(),
+		vehicleClass: fields.vehicleClass,
+		verificationId,
+		vin: fields.vin,
+		wheelbase: fields.wheelbase,
+		year: fields.year,
+	};
+}
+
 /**
- * Live Cashfree RC lookup with caching.
+ * Live Cashfree RC lookup with logging.
  *
  * Cashfree is the mandatory provider for Add-vehicle autofill.
- * Every call is stored in `external_api_calls` with the VIN, request
- * payload and full response. Returns the mapped lookup on success and
- * throws for anything else (missing credentials, provider rejection,
- * provider outage) — there is no browser-automation fallback on this path.
+ * Every call is stored in `external_api_calls` with the VIN, full request
+ * (including `verification_id`) and full response. Returns the enriched
+ * mapped fields on success and throws an ORPCError for anything else
+ * (missing credentials, provider rejection, provider outage) — there is
+ * no browser-automation fallback on this path.
  *
  * NOTE: the APIExpress client in `#/lib/apiexpress/` is kept intact but
  * intentionally unused for now.
  */
-async function fetchAndStoreRc(normalized: string) {
-	const payload = { vehicle_number: normalized };
+async function invokeCashfreeRc(normalized: string): Promise<{
+	fields: ReturnType<typeof mapEnrichedRcResponse>;
+	verificationId: string | null;
+}> {
+	const verificationId = buildVerificationId(normalized);
+	const payload = {
+		vehicle_number: normalized,
+		verification_id: verificationId,
+	};
 	try {
-		const { body, httpStatus } = await verifyRc(normalized);
+		const { body, httpStatus } = await verifyRc(normalized, verificationId);
 		await db.insert(externalApiCalls).values({
 			endpoint: CASHFREE_ENDPOINT_PATH,
 			provider: "cashfree",
@@ -282,22 +457,7 @@ async function fetchAndStoreRc(normalized: string) {
 			statusCode: httpStatus,
 			vin: normalized,
 		});
-		const fields = mapRcResponseToLookup(body);
-		return {
-			color: fields.color,
-			fetchedAt: new Date().toISOString(),
-			fitnessValidTill: fields.fitnessValidTill,
-			fuelType: normalizeFuelType(fields.fuelType),
-			insuranceValidTill: fields.insuranceValidTill,
-			make: fields.make,
-			model: fields.model,
-			pollutionValidTill: fields.pollutionValidTill,
-			registrationDate: fields.registrationDate,
-			registrationNumber: normalized,
-			source: "cashfree" as const,
-			vin: fields.vin,
-			year: fields.year,
-		};
+		return { fields: mapEnrichedRcResponse(body), verificationId };
 	} catch (err) {
 		if (!isCashfreeError(err)) throw err;
 		// No credentials configured — autofill cannot run without Cashfree.
@@ -353,51 +513,82 @@ async function fetchAndStoreRc(normalized: string) {
 export const lookup = protectedProcedure
 	.input(lookupInputSchema)
 	.handler(async ({ context, input }) => {
-		// 1. Standard format.
 		let normalized: string;
 		try {
-			normalized = formatVin(input.registrationNumber);
+			normalized = normalizeRegistrationNumber(input.registrationNumber);
 		} catch (err) {
 			throw new ORPCError("BAD_REQUEST", {
 				message: err instanceof Error ? err.message : "Invalid VIN.",
 			});
 		}
-		if (!/^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4}$/.test(normalized)) {
-			throw new ORPCError("BAD_REQUEST", {
-				message:
-					'Invalid registration number. Expected format like "MH01CR7464".',
-			});
-		}
 
 		// 2. Already in the user's own database?
-		const owned = await db
+		const [existing] = await db
 			.select()
 			.from(vehicles)
-			.where(eq(vehicles.userId, context.user.id));
-		const existing = owned.find((v) => {
-			try {
-				return formatVin(v.registrationNumber) === normalized;
-			} catch {
-				return false;
-			}
-		});
+			.where(
+				and(
+					eq(vehicles.userId, context.user.id),
+					eq(vehicles.registrationNumber, normalized),
+				),
+			)
+			.limit(1);
 		if (existing) {
 			console.log(
 				`[vehicle.lookup] served from vehicles table vin=${normalized} vehicleId=${existing.id}`,
 			);
 			return {
+				bodyType: existing.bodyType ?? null,
 				color: existing.color,
+				cubicCapacity: existing.cubicCapacity ?? null,
+				emissionNorms: existing.emissionNorms ?? null,
+				fatherName: existing.fatherName ?? null,
 				fetchedAt: new Date().toISOString(),
+				financer: existing.financer ?? null,
+				fitnessNumber: existing.fitnessNumber ?? null,
+				fitnessValidFrom: toISODate(existing.fitnessValidFrom),
 				fitnessValidTill: toISODate(existing.fitnessValidTill),
 				fuelType: normalizeFuelType(existing.fuelType),
+				fuelTypeRaw: existing.fuelTypeRaw ?? null,
+				grossVehicleWeightKg: existing.grossVehicleWeightKg ?? null,
+				hypothecatedTo: existing.hypothecatedTo ?? null,
+				hypothecation: existing.hypothecation ?? null,
+				insuranceCompany: existing.insuranceCompany ?? null,
+				insurancePolicyNo: existing.insurancePolicyNo ?? null,
+				insuranceValidFrom: toISODate(existing.insuranceValidFrom),
 				insuranceValidTill: toISODate(existing.insuranceValidTill),
 				make: existing.make,
+				manufacturerModel: existing.manufacturerModel ?? null,
+				manufacturingMonthYear: existing.manufacturingMonthYear ?? null,
+				mobileNumber: existing.mobileNumber ?? null,
 				model: existing.model,
+				officeCode: existing.officeCode ?? null,
+				ownerName: existing.ownerName ?? null,
+				ownershipSrNo: existing.ownershipSrNo ?? null,
+				ownershipType: existing.ownershipType ?? null,
+				permanentAddress: existing.permanentAddress ?? null,
+				permitNumber: existing.permitNumber ?? null,
+				permitType: existing.permitType ?? null,
+				permitValidFrom: toISODate(existing.permitValidFrom),
+				permitValidTill: toISODate(existing.permitValidTill),
 				pollutionValidTill: toISODate(existing.pollutionValidTill),
+				presentAddress: existing.presentAddress ?? null,
+				pucNumber: existing.pucNumber ?? null,
+				rcRaw: (existing.rcRaw as Record<string, unknown> | null) ?? {},
+				rcStatus: existing.rcStatus ?? null,
+				registrationAuthority: existing.registrationAuthority ?? null,
 				registrationDate: toISODate(existing.registrationDate),
 				registrationNumber: normalized,
+				rtoCode: existing.rtoCode ?? null,
+				rtoName: existing.rtoName ?? null,
+				seatingCapacity: existing.seatingCapacity ?? null,
 				source: "database" as const,
+				taxValidTill: toISODate(existing.taxValidTill),
+				unladenWeightKg: existing.unladenWeightKg ?? null,
+				vehicleClass: existing.vehicleClass ?? null,
+				verificationId: existing.verificationId ?? null,
 				vin: existing.vin,
+				wheelbase: existing.wheelbase ?? null,
 				year: existing.year,
 			};
 		}
@@ -418,25 +609,57 @@ export const lookup = protectedProcedure
 			console.log(
 				`[vehicle.lookup] served from external_api_calls cache vin=${normalized} external_api_calls.id=${cached.id}`,
 			);
-			const fields = mapRcResponseToLookup(cached.response);
-			return {
-				color: fields.color,
-				fetchedAt: new Date().toISOString(),
-				fitnessValidTill: fields.fitnessValidTill,
-				fuelType: normalizeFuelType(fields.fuelType),
-				insuranceValidTill: fields.insuranceValidTill,
-				make: fields.make,
-				model: fields.model,
-				pollutionValidTill: fields.pollutionValidTill,
-				registrationDate: fields.registrationDate,
-				registrationNumber: normalized,
-				source: "cache" as const,
-				vin: fields.vin,
-				year: fields.year,
-			};
+			const fields = mapEnrichedRcResponse(cached.response);
+			return toLookupResponse(normalized, fields, "cache");
 		}
 
 		// 4. Live Cashfree call (stored with request/response/VIN).
 		// This is the mandatory provider for Add-vehicle autofill.
-		return fetchAndStoreRc(normalized);
+		const { fields } = await invokeCashfreeRc(normalized);
+		return toLookupResponse(normalized, fields, "cashfree");
+	});
+
+/**
+ * Re-run the Cashfree RC lookup for an owned vehicle and write every
+ * mapped field back to the `vehicles` row (plus full `rc_raw`).
+ * Explicit user action — never implicit overwrite.
+ */
+export const syncRc = protectedProcedure
+	.input(z.object({ vehicleId: z.number().int() }))
+	.handler(async ({ context, input }) => {
+		const [vehicle] = await db
+			.select()
+			.from(vehicles)
+			.where(
+				and(
+					eq(vehicles.id, input.vehicleId),
+					eq(vehicles.userId, context.user.id),
+				),
+			);
+		if (!vehicle) {
+			throw new ORPCError("NOT_FOUND", {
+				message: `Vehicle #${input.vehicleId} not found.`,
+			});
+		}
+		let normalized: string;
+		try {
+			normalized = normalizeRegistrationNumber(vehicle.registrationNumber);
+		} catch (err) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: err instanceof Error ? err.message : "Invalid VIN.",
+			});
+		}
+		const { fields, verificationId } = await invokeCashfreeRc(normalized);
+		const columns = toVehicleColumns(fields, verificationId);
+		const [updated] = await db
+			.update(vehicles)
+			.set({
+				...columns,
+				fuelType: normalizeFuelType(fields.fuelType) ?? vehicle.fuelType,
+			})
+			.where(
+				and(eq(vehicles.id, vehicle.id), eq(vehicles.userId, context.user.id)),
+			)
+			.returning();
+		return updated ?? null;
 	});

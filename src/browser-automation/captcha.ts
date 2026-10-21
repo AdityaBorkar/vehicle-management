@@ -47,7 +47,7 @@ export const META_AI_DEFAULT_BASE_URL = "https://api.meta.ai/v1";
 /** Below this confidence the workflow refreshes instead of submitting. */
 export const MIN_CAPTCHA_CONFIDENCE = 0.5;
 
-const CAPTCHA_PROMPT =
+export const CAPTCHA_PROMPT =
 	"This is a CAPTCHA security-code image from an Indian government portal. " +
 	"Read the characters shown in the image. " +
 	'Return ONLY a JSON object with exactly two keys: {"code": "<the characters, no spaces or punctuation>", "confidence": <your certainty from 0.0 to 1.0 that the code is exactly right>}. ' +

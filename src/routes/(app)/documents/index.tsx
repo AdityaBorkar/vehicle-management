@@ -4,27 +4,26 @@ export const Route = createFileRoute("/(app)/documents/")({
 	component: DocumentsPage,
 });
 
-import type { RouterClient } from "@orpc/server";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, FileText, Plus, RefreshCw, Search } from "lucide-react";
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import {
+	AddDocumentDialog,
+	RenewDialog,
+} from "#/components/documents/document-dialogs";
+import {
+	type DocItem,
+	KIND_LABELS,
+	VEHICLE_EXPIRY_FIELDS,
+} from "#/components/documents/document-vault";
 import { EmptyState } from "#/components/empty-state";
 import { PageHeader } from "#/components/page-header";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -40,38 +39,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
+import { daysUntil, formatDate } from "#/lib/dates";
+import { getDocumentDisplayStatus } from "#/lib/document-status";
+import { DOCUMENT_KINDS } from "#/lib/manual-documents";
 import { orpc } from "#/lib/rpc";
-import type { Router } from "#/rpc/router";
 
-type DocItem = Awaited<
-	ReturnType<RouterClient<Router>["document"]["list"]>
->[number];
-
-const KIND_LABELS: Record<string, string> = {
-	aadhar: "Aadhar",
-	dl_class: "DL Class",
-	driving_license: "Driving License",
-	fitness: "Fitness",
-	insurance: "Insurance",
-	other: "Other",
-	permit: "Permit",
-	pollution: "Pollution (PUC)",
-	registration: "Registration (RC)",
-	tax: "Tax",
-};
-
-const KIND_OPTIONS = [
-	"insurance",
-	"fitness",
-	"pollution",
-	"registration",
-	"permit",
-	"tax",
-	"driving_license",
-	"dl_class",
-	"aadhar",
-	"other",
-] as const;
+const KIND_OPTIONS = DOCUMENT_KINDS;
 
 const STATUS_LABELS: Record<string, string> = {
 	all: "All statuses",
@@ -81,34 +54,6 @@ const STATUS_LABELS: Record<string, string> = {
 	"no-expiry": "No expiry",
 	valid: "Valid",
 };
-
-const VEHICLE_EXPIRY_FIELDS = {
-	fitness: "fitnessValidTill",
-	insurance: "insuranceValidTill",
-	pollution: "pollutionValidTill",
-} as const;
-
-type DisplayStatus =
-	| "valid"
-	| "expiring"
-	| "expired"
-	| "no-expiry"
-	| "superseded"
-	| "archived";
-
-function daysLeft(expiry: Date): number {
-	return Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-}
-
-function getDisplayStatus(doc: DocItem): DisplayStatus {
-	if (doc.status === "archived") return "archived";
-	if (doc.status === "superseded" || !doc.isCurrent) return "superseded";
-	if (!doc.expiryDate) return "no-expiry";
-	const left = daysLeft(doc.expiryDate);
-	if (left < 0) return "expired";
-	if (left <= 30) return "expiring";
-	return "valid";
-}
 
 function canRenew(doc: DocItem): boolean {
 	if (doc.source === "stored") {
@@ -154,7 +99,7 @@ function DocumentsPage() {
 		const q = search.trim().toLowerCase();
 		const filtered = all.filter((d) => {
 			if (kindFilter !== "all" && d.kind !== kindFilter) return false;
-			const status = getDisplayStatus(d);
+			const status = getDocumentDisplayStatus(d);
 			if (statusFilter === "history") {
 				if (status !== "superseded" && status !== "archived") return false;
 			} else if (statusFilter !== "all" && status !== statusFilter) {
@@ -313,8 +258,8 @@ function DocumentsPage() {
 							{docs.map((d) => (
 								<TableRow
 									className={
-										getDisplayStatus(d) === "superseded" ||
-										getDisplayStatus(d) === "archived"
+										getDocumentDisplayStatus(d) === "superseded" ||
+										getDocumentDisplayStatus(d) === "archived"
 											? "opacity-60"
 											: undefined
 									}
@@ -327,6 +272,14 @@ function DocumentsPage() {
 											{d.documentNumber ? ` · ${d.documentNumber}` : ""}
 											{d.source === "stored" ? " · Vault" : ""}
 										</div>
+										{d.fileKey && d.storedId ? (
+											<a
+												className="text-xs underline"
+												href={`/api/documents/${d.storedId}`}
+											>
+												{d.fileName || "Download file"}
+											</a>
+										) : null}
 									</TableCell>
 									<TableCell>
 										{d.vehicleRegistration || d.vin ? (
@@ -430,16 +383,16 @@ function DocumentsPage() {
 }
 
 function StatusBadge({ doc }: { doc: DocItem }) {
-	const status = getDisplayStatus(doc);
+	const status = getDocumentDisplayStatus(doc);
 	switch (status) {
 		case "expired":
 			return <Badge variant="destructive">Expired</Badge>;
 		case "expiring": {
-			const left = doc.expiryDate ? daysLeft(doc.expiryDate) : 0;
+			const left = doc.expiryDate ? daysUntil(doc.expiryDate) : 0;
 			return <Badge variant="destructive">{left}d left</Badge>;
 		}
 		case "valid": {
-			const left = doc.expiryDate ? daysLeft(doc.expiryDate) : 0;
+			const left = doc.expiryDate ? daysUntil(doc.expiryDate) : 0;
 			return <Badge variant="secondary">{left}d left</Badge>;
 		}
 		case "superseded":
@@ -453,376 +406,4 @@ function StatusBadge({ doc }: { doc: DocItem }) {
 				</Badge>
 			);
 	}
-}
-
-function AddDocumentDialog({
-	open,
-	onClose,
-	vehicles,
-	drivers,
-}: {
-	open: boolean;
-	onClose: () => void;
-	vehicles: { id: number; registrationNumber: string }[];
-	drivers: { id: number; name: string }[];
-}) {
-	const uid = useId();
-	const queryClient = useQueryClient();
-	const [kind, setKind] = useState<string>("insurance");
-
-	const createMutation = useMutation(
-		orpc.document.create.mutationOptions({
-			onError: (err) => toast.error(err.message),
-			onSuccess: () => {
-				queryClient.invalidateQueries({
-					queryKey: orpc.document.list.key(),
-				});
-				onClose();
-				toast.success("Document added to the vault");
-			},
-		}),
-	);
-
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		const fd = new FormData(e.currentTarget);
-		const vehicleRaw = fd.get("vehicleId") as string;
-		const driverRaw = fd.get("driverId") as string;
-		createMutation.mutate({
-			documentName:
-				((fd.get("documentName") as string) || KIND_LABELS[kind]) ?? "Document",
-			documentNumber: (fd.get("documentNumber") as string) || undefined,
-			driverId: driverRaw ? Number(driverRaw) : undefined,
-			expiryDate: fd.get("expiryDate")
-				? new Date(fd.get("expiryDate") as string)
-				: undefined,
-			issueDate: fd.get("issueDate")
-				? new Date(fd.get("issueDate") as string)
-				: undefined,
-			kind: kind as (typeof KIND_OPTIONS)[number],
-			licenseNumber: (fd.get("licenseNumber") as string) || undefined,
-			notes: (fd.get("notes") as string) || undefined,
-			vehicleId: vehicleRaw ? Number(vehicleRaw) : undefined,
-			vehicleRegistration:
-				(fd.get("vehicleRegistration") as string) || undefined,
-			vin: (fd.get("vin") as string) || undefined,
-		});
-	}
-
-	return (
-		<Dialog onOpenChange={(v) => !v && onClose()} open={open}>
-			<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Add Document</DialogTitle>
-					<DialogDescription>
-						Stored in the vault forever — renewals keep the old rows.
-					</DialogDescription>
-				</DialogHeader>
-				<form className="space-y-4" onSubmit={handleSubmit}>
-					<div className="grid gap-4 sm:grid-cols-2">
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-kind`}>Document Kind *</Label>
-							<Select
-								onValueChange={(v) => setKind(v ?? "insurance")}
-								value={kind}
-							>
-								<SelectTrigger id={`${uid}-kind`}>
-									<SelectValue placeholder="Select kind" />
-								</SelectTrigger>
-								<SelectContent>
-									{KIND_OPTIONS.map((k) => (
-										<SelectItem key={k} value={k}>
-											{KIND_LABELS[k] ?? k}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-documentName`}>Document Name *</Label>
-							<Input
-								id={`${uid}-documentName`}
-								name="documentName"
-								placeholder={KIND_LABELS[kind] ?? "Document"}
-								required
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-vehicle`}>Vehicle</Label>
-							<Select name="vehicleId">
-								<SelectTrigger id={`${uid}-vehicle`}>
-									<SelectValue placeholder="Not linked" />
-								</SelectTrigger>
-								<SelectContent>
-									{vehicles.map((v) => (
-										<SelectItem key={v.id} value={String(v.id)}>
-											{v.registrationNumber}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-driver`}>Driver</Label>
-							<Select name="driverId">
-								<SelectTrigger id={`${uid}-driver`}>
-									<SelectValue placeholder="Not linked" />
-								</SelectTrigger>
-								<SelectContent>
-									{drivers.map((d) => (
-										<SelectItem key={d.id} value={String(d.id)}>
-											{d.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-vehicleRegistration`}>
-								Registration Number
-							</Label>
-							<Input
-								id={`${uid}-vehicleRegistration`}
-								name="vehicleRegistration"
-								placeholder="MH 01 CR 7464"
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-vin`}>VIN / Chassis Number</Label>
-							<Input
-								id={`${uid}-vin`}
-								name="vin"
-								placeholder="MAT12345678901234"
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-licenseNumber`}>DL Number</Label>
-							<Input
-								id={`${uid}-licenseNumber`}
-								name="licenseNumber"
-								placeholder="MH0120180123456"
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-documentNumber`}>Policy / Cert No.</Label>
-							<Input
-								id={`${uid}-documentNumber`}
-								name="documentNumber"
-								placeholder="Policy or certificate number"
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-issueDate`}>Issue Date</Label>
-							<Input id={`${uid}-issueDate`} name="issueDate" type="date" />
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-expiryDate`}>Expiry Date</Label>
-							<Input id={`${uid}-expiryDate`} name="expiryDate" type="date" />
-						</div>
-						<div className="space-y-2 sm:col-span-2">
-							<Label htmlFor={`${uid}-notes`}>Notes</Label>
-							<Input
-								id={`${uid}-notes`}
-								name="notes"
-								placeholder="Insurer, RTO, anything worth remembering"
-							/>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button onClick={onClose} type="button" variant="outline">
-							Cancel
-						</Button>
-						<Button disabled={createMutation.isPending} type="submit">
-							{createMutation.isPending ? "Saving..." : "Add Document"}
-						</Button>
-					</DialogFooter>
-				</form>
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-function RenewDialog({ doc, onClose }: { doc: DocItem; onClose: () => void }) {
-	const uid = useId();
-	const queryClient = useQueryClient();
-
-	function invalidate() {
-		queryClient.invalidateQueries({ queryKey: orpc.document.list.key() });
-		queryClient.invalidateQueries({ queryKey: orpc.vehicle.list.key() });
-	}
-
-	const renewStoredMutation = useMutation(
-		orpc.document.renew.mutationOptions({
-			onError: (err) => toast.error(err.message),
-			onSuccess: () => {
-				invalidate();
-				onClose();
-				toast.success("Renewed — old document kept as history");
-			},
-		}),
-	);
-	const updateVehicleMutation = useMutation(
-		orpc.vehicle.update.mutationOptions({
-			onError: (err) => toast.error(err.message),
-			onSuccess: () => {
-				invalidate();
-				onClose();
-				toast.success("Renewed — old document kept as history");
-			},
-		}),
-	);
-	const updateClassMutation = useMutation(
-		orpc.license.updateClass.mutationOptions({
-			onError: (err) => toast.error(err.message),
-			onSuccess: () => {
-				invalidate();
-				onClose();
-				toast.success("Renewed — old document kept as history");
-			},
-		}),
-	);
-
-	const isPending =
-		renewStoredMutation.isPending ||
-		updateVehicleMutation.isPending ||
-		updateClassMutation.isPending;
-
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		const fd = new FormData(e.currentTarget);
-
-		if (doc.source === "stored" && doc.storedId !== null) {
-			renewStoredMutation.mutate({
-				documentNumber: (fd.get("documentNumber") as string) || undefined,
-				expiryDate: fd.get("expiryDate")
-					? new Date(fd.get("expiryDate") as string)
-					: undefined,
-				id: doc.storedId,
-				issueDate: fd.get("issueDate")
-					? new Date(fd.get("issueDate") as string)
-					: undefined,
-				notes: (fd.get("notes") as string) || undefined,
-			});
-			return;
-		}
-
-		const expiryRaw = fd.get("expiryDate") as string;
-		if (!expiryRaw) {
-			toast.error("New expiry date is required");
-			return;
-		}
-		const expiry = new Date(expiryRaw);
-
-		if (doc.source === "vehicle" && doc.vehicleId !== null) {
-			const field =
-				VEHICLE_EXPIRY_FIELDS[doc.kind as keyof typeof VEHICLE_EXPIRY_FIELDS];
-			if (!field) {
-				toast.error("This document cannot be renewed here");
-				return;
-			}
-			if (field === "insuranceValidTill")
-				updateVehicleMutation.mutate({
-					id: doc.vehicleId,
-					insuranceValidTill: expiry,
-				});
-			else if (field === "fitnessValidTill")
-				updateVehicleMutation.mutate({
-					fitnessValidTill: expiry,
-					id: doc.vehicleId,
-				});
-			else
-				updateVehicleMutation.mutate({
-					id: doc.vehicleId,
-					pollutionValidTill: expiry,
-				});
-			return;
-		}
-
-		if (doc.source === "license" && doc.licenseClassId !== null) {
-			updateClassMutation.mutate({
-				expiryDate: expiry,
-				id: doc.licenseClassId,
-			});
-		}
-	}
-
-	const showFullForm = doc.source === "stored";
-
-	return (
-		<Dialog onOpenChange={(v) => !v && onClose()} open>
-			<DialogContent className="sm:max-w-md">
-				<DialogHeader>
-					<DialogTitle>Renew Document</DialogTitle>
-					<DialogDescription>
-						{doc.documentName}
-						{doc.vehicleRegistration ? ` · ${doc.vehicleRegistration}` : ""}
-						{doc.licenseNumber ? ` · DL ${doc.licenseNumber}` : ""} — the
-						current row stays in history.
-					</DialogDescription>
-				</DialogHeader>
-				<form className="space-y-4" onSubmit={handleSubmit}>
-					{showFullForm && (
-						<div className="grid gap-4 sm:grid-cols-2">
-							<div className="space-y-2">
-								<Label htmlFor={`${uid}-issueDate`}>New Issue Date</Label>
-								<Input
-									defaultValue={doc.issueDate ? toDateInput(doc.issueDate) : ""}
-									id={`${uid}-issueDate`}
-									name="issueDate"
-									type="date"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor={`${uid}-documentNumber`}>
-									Policy / Cert No.
-								</Label>
-								<Input
-									defaultValue={doc.documentNumber ?? ""}
-									id={`${uid}-documentNumber`}
-									name="documentNumber"
-								/>
-							</div>
-						</div>
-					)}
-					<div className="space-y-2">
-						<Label htmlFor={`${uid}-expiryDate`}>New Expiry Date *</Label>
-						<Input
-							defaultValue={doc.expiryDate ? toDateInput(doc.expiryDate) : ""}
-							id={`${uid}-expiryDate`}
-							name="expiryDate"
-							required
-							type="date"
-						/>
-					</div>
-					{showFullForm && (
-						<div className="space-y-2">
-							<Label htmlFor={`${uid}-notes`}>Notes</Label>
-							<Input
-								defaultValue={doc.notes ?? ""}
-								id={`${uid}-notes`}
-								name="notes"
-							/>
-						</div>
-					)}
-					<DialogFooter>
-						<Button onClick={onClose} type="button" variant="outline">
-							Cancel
-						</Button>
-						<Button disabled={isPending} type="submit">
-							{isPending ? "Renewing..." : "Renew"}
-						</Button>
-					</DialogFooter>
-				</form>
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-function formatDate(date: Date | null): string {
-	if (!date) return "—";
-	return new Date(date).toLocaleDateString();
-}
-
-function toDateInput(date: Date): string {
-	return new Date(date).toISOString().slice(0, 10);
 }

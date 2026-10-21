@@ -1,9 +1,8 @@
-import { readFile } from "node:fs/promises";
-
 import { createFileRoute } from "@tanstack/react-router";
 import { and, eq } from "drizzle-orm";
 
-import { resolveArtifactDir } from "#/browser-automation/artifact-store";
+import { readArtifactCompat } from "#/browser-automation/artifact-compat";
+import { contentTypeForKey } from "#/browser-automation/artifact-store";
 import { workflowRuns } from "#/db-schema";
 import { auth } from "#/lib/auth-server";
 import { db } from "#/lib/db";
@@ -39,16 +38,11 @@ export const Route = createFileRoute("/api/pucc/$runId")({
 					return new Response("PUCC certificate not found", { status: 404 });
 				}
 
-				// Defense in depth: only serve files inside the artifact dir.
-				const baseDir = resolveArtifactDir();
-				if (!row.artifactPath.startsWith(`${baseDir}/`)) {
-					return new Response("PUCC certificate not found", { status: 404 });
-				}
 				let data: Buffer;
 				try {
-					data = await readFile(row.artifactPath);
+					data = await readArtifactCompat(row.artifactPath);
 				} catch {
-					return new Response("PUCC certificate no longer on disk", {
+					return new Response("PUCC certificate no longer available", {
 						status: 404,
 					});
 				}
@@ -66,8 +60,49 @@ export const Route = createFileRoute("/api/pucc/$runId")({
 						"Cache-Control": "private, max-age=3600",
 						"Content-Disposition": `inline; filename="PUCC-${reg}.pdf"`,
 						"Content-Length": String(data.length),
-						"Content-Type": "application/pdf",
+						"Content-Type": contentTypeForKey(row.artifactPath),
 					},
+				});
+			},
+			HEAD: async ({ request }: { request: Request }) => {
+				const session = await auth.api.getSession({
+					headers: request.headers,
+				});
+				if (!session?.user) {
+					return new Response(null, { status: 401 });
+				}
+				const runId = Number(
+					new URL(request.url).pathname.split("/").pop() ?? "",
+				);
+				if (!Number.isInteger(runId)) {
+					return new Response(null, { status: 400 });
+				}
+				const [row] = await db
+					.select()
+					.from(workflowRuns)
+					.where(
+						and(
+							eq(workflowRuns.id, runId),
+							eq(workflowRuns.userId, session.user.id),
+						),
+					);
+				if (!row || row.status !== "succeeded" || !row.artifactPath) {
+					return new Response(null, { status: 404 });
+				}
+				let size = 0;
+				try {
+					const data = await readArtifactCompat(row.artifactPath);
+					size = data.length;
+				} catch {
+					return new Response(null, { status: 404 });
+				}
+				return new Response(null, {
+					headers: {
+						"Cache-Control": "private, max-age=3600",
+						"Content-Length": String(size),
+						"Content-Type": contentTypeForKey(row.artifactPath),
+					},
+					status: 200,
 				});
 			},
 		},

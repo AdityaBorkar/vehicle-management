@@ -34,6 +34,10 @@ export const documents = pgTable("documents", {
 		mode: "date",
 		withTimezone: true,
 	}),
+	fileKey: text("file_key"),
+	fileMime: text("file_mime"),
+	fileName: text("file_name"),
+	fileSizeBytes: integer("file_size_bytes"),
 	id: serial().primaryKey(),
 	isCurrent: boolean("is_current").default(true),
 	issueDate: timestamp("issue_date", {

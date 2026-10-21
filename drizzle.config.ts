@@ -10,5 +10,5 @@ export default defineConfig({
 	dialect: "postgresql",
 	out: "./drizzle",
 	schema: "./src/db-schema/index.ts",
-	schemaFilter: ["public", "auth"],
+	schemaFilter: ["public", "auth", "debug"],
 });

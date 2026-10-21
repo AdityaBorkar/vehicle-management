@@ -16,3 +16,24 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    volumes:
+      - ./.local/rustfs:/data
+    # Dev-only: the image runs as non-root but docker creates the bind-mount
+    # dir as root, so run as root to stay working on fresh clones.
+    user: "0:0"
+    command: ["--console-address", ":9001", "/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
