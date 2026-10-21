@@ -18,10 +18,11 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { EmptyState } from "#/components/empty-state";
+import { PageHeader } from "#/components/page-header";
 import { PuccCertificateMenuItem } from "#/components/pucc-certificate-button";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -266,242 +267,268 @@ function VehiclesPage() {
 	}
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="font-bold text-2xl">Vehicles</h1>
-				<Dialog
-					onOpenChange={(v: boolean) => {
-						if (v) {
-							handleAdd();
-						} else {
-							closeDialog();
-						}
-					}}
-					open={open}
-				>
-					<DialogTrigger
-						render={
-							<Button type="button">
-								<Plus className="mr-2 h-4 w-4" />
-								Add Vehicle
-							</Button>
-						}
-					/>
-					<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-						<DialogHeader>
-							<DialogTitle>
-								{isEditing ? "Edit Vehicle" : "Add Vehicle"}
-							</DialogTitle>
-							<DialogDescription>
-								{isEditing
-									? "Update vehicle details"
-									: "Enter the vehicle number — validated via Cashfree and auto-created on success"}
-							</DialogDescription>
-						</DialogHeader>
-						<form className="space-y-4" onSubmit={handleSubmit}>
-							<div className="space-y-2">
-								<Label htmlFor={`${uid}-registrationNumber`}>
-									Registration Number *
-								</Label>
-								<Input
-									id={`${uid}-registrationNumber`}
-									onChange={(e) => set("registrationNumber", e.target.value)}
-									placeholder="MH 01 CR 7464"
-									required
-									value={draft.registrationNumber}
-								/>
-								{!isEditing && !lookupError && !isSaving && (
-									<p className="text-muted-foreground text-xs">
-										Only the vehicle number is needed. It is validated via
-										Cashfree and the vehicle is created automatically.
-									</p>
-								)}
-							</div>
-
-							{lookupMutation.isPending && (
-								<div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-muted-foreground text-sm">
-									<Loader2 className="h-4 w-4 animate-spin" />
-									Validating{" "}
-									<span className="font-medium text-foreground">
-										{draft.registrationNumber.trim()}
-									</span>
-									with Cashfree…
-								</div>
-							)}
-
-							{createMutation.isPending && (
-								<div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-muted-foreground text-sm">
-									<Loader2 className="h-4 w-4 animate-spin" />
-									Validation successful — creating vehicle…
-								</div>
-							)}
-
-							{lookupError && !isEditing && (
-								<div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
-									<p className="text-destructive">{lookupError}</p>
-								</div>
-							)}
-
-							{isEditing && (
-								<div className="grid gap-4 sm:grid-cols-2">
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-make`}>Make</Label>
-										<Input
-											id={`${uid}-make`}
-											onChange={(e) => set("make", e.target.value)}
-											placeholder="Toyota"
-											value={draft.make}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-model`}>Model</Label>
-										<Input
-											id={`${uid}-model`}
-											onChange={(e) => set("model", e.target.value)}
-											placeholder="Innova"
-											value={draft.model}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-year`}>Year</Label>
-										<Input
-											id={`${uid}-year`}
-											onChange={(e) => set("year", e.target.value)}
-											placeholder="2024"
-											type="number"
-											value={draft.year}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-color`}>Color</Label>
-										<Input
-											id={`${uid}-color`}
-											onChange={(e) => set("color", e.target.value)}
-											placeholder="White"
-											value={draft.color}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-fuelType`}>Fuel Type</Label>
-										<Select
-											onValueChange={(v) => set("fuelType", v ?? "")}
-											value={draft.fuelType || null}
-										>
-											<SelectTrigger className="w-full" id={`${uid}-fuelType`}>
-												<SelectValue placeholder="Select fuel type" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="Diesel">Diesel</SelectItem>
-												<SelectItem value="Petrol">Petrol</SelectItem>
-												<SelectItem value="CNG">CNG</SelectItem>
-												<SelectItem value="EV">EV</SelectItem>
-												<SelectItem value="Other">Other</SelectItem>
-											</SelectContent>
-										</Select>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-registrationDate`}>
-											Registration Date
-										</Label>
-										<Input
-											id={`${uid}-registrationDate`}
-											onChange={(e) => set("registrationDate", e.target.value)}
-											type="date"
-											value={draft.registrationDate}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-vin`}>VIN / Chassis Number</Label>
-										<Input
-											id={`${uid}-vin`}
-											onChange={(e) => set("vin", e.target.value)}
-											placeholder="MAT12345678901234"
-											value={draft.vin}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-fitnessValidTill`}>
-											Fitness Valid Till
-										</Label>
-										<Input
-											id={`${uid}-fitnessValidTill`}
-											onChange={(e) => set("fitnessValidTill", e.target.value)}
-											type="date"
-											value={draft.fitnessValidTill}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-insuranceValidTill`}>
-											Insurance Valid Till
-										</Label>
-										<Input
-											id={`${uid}-insuranceValidTill`}
-											onChange={(e) =>
-												set("insuranceValidTill", e.target.value)
-											}
-											type="date"
-											value={draft.insuranceValidTill}
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor={`${uid}-pollutionValidTill`}>
-											Pollution Valid Till
-										</Label>
-										<Input
-											id={`${uid}-pollutionValidTill`}
-											onChange={(e) =>
-												set("pollutionValidTill", e.target.value)
-											}
-											type="date"
-											value={draft.pollutionValidTill}
-										/>
-									</div>
-								</div>
-							)}
-							<DialogFooter>
-								<Button onClick={closeDialog} type="button" variant="outline">
-									Cancel
+		<div className="space-y-8">
+			<PageHeader
+				actions={
+					<Dialog
+						onOpenChange={(v: boolean) => {
+							if (v) {
+								handleAdd();
+							} else {
+								closeDialog();
+							}
+						}}
+						open={open}
+					>
+						<DialogTrigger
+							render={
+								<Button size="lg" type="button">
+									<Plus className="size-4" />
+									Add vehicle
 								</Button>
-								{!isEditing ? (
-									<Button
-										disabled={isSaving || !draft.registrationNumber.trim()}
-										type="submit"
-									>
-										{lookupMutation.isPending
-											? "Validating..."
-											: createMutation.isPending
-												? "Creating..."
-												: "Add Vehicle"}
-									</Button>
-								) : (
-									<Button disabled={updateMutation.isPending} type="submit">
-										{updateMutation.isPending ? "Saving..." : "Update"}
-									</Button>
+							}
+						/>
+						<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+							<DialogHeader>
+								<DialogTitle>
+									{isEditing ? "Edit Vehicle" : "Add Vehicle"}
+								</DialogTitle>
+								<DialogDescription>
+									{isEditing
+										? "Update vehicle details"
+										: "Enter the vehicle number — validated via Cashfree and auto-created on success"}
+								</DialogDescription>
+							</DialogHeader>
+							<form className="space-y-4" onSubmit={handleSubmit}>
+								<div className="space-y-2">
+									<Label htmlFor={`${uid}-registrationNumber`}>
+										Registration Number *
+									</Label>
+									<Input
+										autoFocus
+										className="h-12 font-mono text-base uppercase tracking-[0.06em]"
+										id={`${uid}-registrationNumber`}
+										onChange={(e) => set("registrationNumber", e.target.value)}
+										placeholder="MH 01 CR 7464"
+										required
+										value={draft.registrationNumber}
+									/>
+									{!isEditing && !lookupError && !isSaving && (
+										<p className="text-muted-foreground text-xs">
+											Only the vehicle number is needed. It is validated via
+											Cashfree and the vehicle is created automatically.
+										</p>
+									)}
+								</div>
+
+								{lookupMutation.isPending && (
+									<div className="flex items-center gap-2 rounded-xl border border-dashed p-3 text-muted-foreground text-sm">
+										<Loader2 className="size-4 animate-spin" />
+										Validating{" "}
+										<span className="font-medium text-foreground">
+											{draft.registrationNumber.trim()}
+										</span>
+										with Cashfree…
+									</div>
 								)}
-							</DialogFooter>
-						</form>
-					</DialogContent>
-				</Dialog>
-			</div>
+
+								{createMutation.isPending && (
+									<div className="flex items-center gap-2 rounded-xl border border-dashed p-3 text-muted-foreground text-sm">
+										<Loader2 className="size-4 animate-spin" />
+										Validation successful — creating vehicle…
+									</div>
+								)}
+
+								{lookupError && !isEditing && (
+									<div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm">
+										<p className="text-destructive">{lookupError}</p>
+									</div>
+								)}
+
+								{isEditing && (
+									<div className="grid gap-4 sm:grid-cols-2">
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-make`}>Make</Label>
+											<Input
+												id={`${uid}-make`}
+												onChange={(e) => set("make", e.target.value)}
+												placeholder="Toyota"
+												value={draft.make}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-model`}>Model</Label>
+											<Input
+												id={`${uid}-model`}
+												onChange={(e) => set("model", e.target.value)}
+												placeholder="Innova"
+												value={draft.model}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-year`}>Year</Label>
+											<Input
+												id={`${uid}-year`}
+												onChange={(e) => set("year", e.target.value)}
+												placeholder="2024"
+												type="number"
+												value={draft.year}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-color`}>Color</Label>
+											<Input
+												id={`${uid}-color`}
+												onChange={(e) => set("color", e.target.value)}
+												placeholder="White"
+												value={draft.color}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-fuelType`}>Fuel Type</Label>
+											<Select
+												onValueChange={(v) => set("fuelType", v ?? "")}
+												value={draft.fuelType || null}
+											>
+												<SelectTrigger
+													className="w-full"
+													id={`${uid}-fuelType`}
+												>
+													<SelectValue placeholder="Select fuel type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="Diesel">Diesel</SelectItem>
+													<SelectItem value="Petrol">Petrol</SelectItem>
+													<SelectItem value="CNG">CNG</SelectItem>
+													<SelectItem value="EV">EV</SelectItem>
+													<SelectItem value="Other">Other</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-registrationDate`}>
+												Registration Date
+											</Label>
+											<Input
+												id={`${uid}-registrationDate`}
+												onChange={(e) =>
+													set("registrationDate", e.target.value)
+												}
+												type="date"
+												value={draft.registrationDate}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-vin`}>VIN / Chassis Number</Label>
+											<Input
+												id={`${uid}-vin`}
+												onChange={(e) => set("vin", e.target.value)}
+												placeholder="MAT12345678901234"
+												value={draft.vin}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-fitnessValidTill`}>
+												Fitness Valid Till
+											</Label>
+											<Input
+												id={`${uid}-fitnessValidTill`}
+												onChange={(e) =>
+													set("fitnessValidTill", e.target.value)
+												}
+												type="date"
+												value={draft.fitnessValidTill}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-insuranceValidTill`}>
+												Insurance Valid Till
+											</Label>
+											<Input
+												id={`${uid}-insuranceValidTill`}
+												onChange={(e) =>
+													set("insuranceValidTill", e.target.value)
+												}
+												type="date"
+												value={draft.insuranceValidTill}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${uid}-pollutionValidTill`}>
+												Pollution Valid Till
+											</Label>
+											<Input
+												id={`${uid}-pollutionValidTill`}
+												onChange={(e) =>
+													set("pollutionValidTill", e.target.value)
+												}
+												type="date"
+												value={draft.pollutionValidTill}
+											/>
+										</div>
+									</div>
+								)}
+								<DialogFooter>
+									<Button onClick={closeDialog} type="button" variant="outline">
+										Cancel
+									</Button>
+									{!isEditing ? (
+										<Button
+											disabled={isSaving || !draft.registrationNumber.trim()}
+											type="submit"
+										>
+											{lookupMutation.isPending
+												? "Validating..."
+												: createMutation.isPending
+													? "Creating..."
+													: "Add Vehicle"}
+										</Button>
+									) : (
+										<Button disabled={updateMutation.isPending} type="submit">
+											{updateMutation.isPending ? "Saving..." : "Update"}
+										</Button>
+									)}
+								</DialogFooter>
+							</form>
+						</DialogContent>
+					</Dialog>
+				}
+				description="Every registration, policy and expiry in one place. Add a number and the details fill themselves in."
+				eyebrow="Fleet / Vehicles"
+				meta={
+					<>
+						<span>
+							{vehicles.length} {vehicles.length === 1 ? "vehicle" : "vehicles"}{" "}
+							on record
+						</span>
+						<span>Insurance and fitness tracked automatically</span>
+					</>
+				}
+				title="Vehicles"
+			/>
 
 			{vehicles.length === 0 ? (
-				<Card>
-					<CardContent className="flex flex-col items-center gap-4 py-12">
-						<Car className="h-12 w-12 text-muted-foreground" />
-						<div className="text-center">
-							<h2 className="font-semibold text-lg">No vehicles yet</h2>
-							<p className="text-muted-foreground text-sm">
-								Add your first vehicle — just the number, rest autofills
-							</p>
-						</div>
-						<Button onClick={handleAdd}>
-							<Plus className="mr-2 h-4 w-4" />
-							Add Vehicle
+				<EmptyState
+					action={
+						<Button onClick={handleAdd} size="lg">
+							<Plus className="size-4" />
+							Add your first vehicle
 						</Button>
-					</CardContent>
-				</Card>
+					}
+					description="Just the registration number — the rest autofills from the RTO record."
+					icon={Car}
+					title="No vehicles yet"
+				/>
 			) : (
-				<Card>
+				<div className="overflow-hidden rounded-2xl border border-border bg-card">
+					<div className="flex items-center justify-between border-b border-border px-5 py-4">
+						<p className="font-medium text-[15px] tracking-[-0.01em]">
+							All vehicles
+						</p>
+						<p className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.1em]">
+							{vehicles.length} {vehicles.length === 1 ? "record" : "records"}
+						</p>
+					</div>
 					<Table>
 						<TableHeader>
 							<TableRow>
@@ -527,7 +554,7 @@ function VehiclesPage() {
 								>
 									<TableCell className="font-medium">
 										<Link
-											className="hover:underline"
+											className="font-mono text-[13px] tracking-[0.03em] hover:underline"
 											onClick={(e) => e.stopPropagation()}
 											params={{ vehicleId: String(v.id) }}
 											to="/vehicles/$vehicleId"
@@ -538,7 +565,7 @@ function VehiclesPage() {
 									<TableCell>
 										{[v.make, v.model].filter(Boolean).join(" ") || "—"}
 									</TableCell>
-									<TableCell>{v.year ?? "—"}</TableCell>
+									<TableCell className="tabular">{v.year ?? "—"}</TableCell>
 									<TableCell>
 										{v.fuelType ? (
 											<Badge variant="secondary">{v.fuelType}</Badge>
@@ -555,7 +582,7 @@ function VehiclesPage() {
 												aria-label={`Actions for ${v.registrationNumber}`}
 												render={
 													<Button size="icon-xs" type="button" variant="ghost">
-														<MoreHorizontal className="h-4 w-4" />
+														<MoreHorizontal className="size-4" />
 													</Button>
 												}
 											/>
@@ -568,11 +595,11 @@ function VehiclesPage() {
 														})
 													}
 												>
-													<Eye className="mr-2 h-4 w-4" />
+													<Eye className="size-4" />
 													View details
 												</DropdownMenuItem>
 												<DropdownMenuItem onClick={() => handleEdit(v)}>
-													<Pencil className="mr-2 h-4 w-4" />
+													<Pencil className="size-4" />
 													Edit
 												</DropdownMenuItem>
 												<PuccCertificateMenuItem
@@ -584,7 +611,7 @@ function VehiclesPage() {
 													className="text-destructive"
 													onClick={() => deleteMutation.mutate({ id: v.id })}
 												>
-													<Trash2 className="mr-2 h-4 w-4" />
+													<Trash2 className="size-4" />
 													Delete
 												</DropdownMenuItem>
 											</DropdownMenuContent>
@@ -594,7 +621,7 @@ function VehiclesPage() {
 							))}
 						</TableBody>
 					</Table>
-				</Card>
+				</div>
 			)}
 		</div>
 	);
@@ -610,7 +637,7 @@ export function ExpiryBadge({ date }: { date: Date | null }) {
 	if (daysLeft <= 90)
 		return (
 			<Badge
-				className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+				className="border-warning/20 bg-warning/10 text-warning dark:bg-warning/10"
 				variant="secondary"
 			>
 				{daysLeft}d

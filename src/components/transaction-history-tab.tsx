@@ -115,9 +115,9 @@ export function TransactionHistoryTab({
 		<Card>
 			<CardHeader className="flex flex-row items-center justify-between gap-3">
 				<div className="flex items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-						<History className="h-5 w-5 text-primary" />
-					</div>
+					<span className="grid size-11 place-items-center rounded-full border border-border bg-muted/40">
+						<History className="size-5" strokeWidth={1.6} />
+					</span>
 					<div>
 						<CardTitle className="text-base">Transaction History</CardTitle>
 						<p className="text-muted-foreground text-sm">
@@ -136,9 +136,9 @@ export function TransactionHistoryTab({
 					variant="outline"
 				>
 					{refreshing ? (
-						<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+						<Loader2 className="size-4 animate-spin" />
 					) : (
-						<RefreshCw className="mr-2 h-4 w-4" />
+						<RefreshCw className="size-4" />
 					)}
 					{busy ? "Fetching…" : "Refresh"}
 				</Button>

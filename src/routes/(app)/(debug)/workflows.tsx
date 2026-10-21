@@ -4,6 +4,7 @@ import { FlaskConical } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { PageHeader } from "#/components/page-header";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
@@ -58,13 +59,23 @@ function WorkflowsPage() {
 	);
 
 	return (
-		<div className="space-y-6">
-			<h1 className="font-bold text-2xl">Workflows</h1>
+		<div className="space-y-8">
+			<PageHeader
+				description="Run PUCC and transaction-history workflows, then follow every run from queue to artifact. Built for debugging the browser automation layer."
+				eyebrow="Debug / Workflows"
+				meta={
+					<>
+						<span>PUCC certificate runs</span>
+						<span>Vahan transaction history</span>
+					</>
+				}
+				title="Workflows"
+			/>
 
 			<Card>
 				<CardHeader className="flex flex-row items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-						<FlaskConical className="h-5 w-5 text-primary" />
+					<div className="grid size-11 place-items-center rounded-full border border-border bg-muted/40">
+						<FlaskConical className="size-5" strokeWidth={1.6} />
 					</div>
 					<div>
 						<CardTitle className="text-base">PUC Certificate (async)</CardTitle>
@@ -123,8 +134,8 @@ function WorkflowsPage() {
 
 			<Card>
 				<CardHeader className="flex flex-row items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-						<FlaskConical className="h-5 w-5 text-primary" />
+					<div className="grid size-11 place-items-center rounded-full border border-border bg-muted/40">
+						<FlaskConical className="size-5" strokeWidth={1.6} />
 					</div>
 					<div>
 						<CardTitle className="text-base">
@@ -198,7 +209,7 @@ function WorkflowsPage() {
 						<ul className="space-y-2 text-sm">
 							{runs.map((run) => (
 								<li
-									className="flex flex-wrap items-center gap-2 rounded-lg border p-3"
+									className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/20 p-3"
 									key={run.id}
 								>
 									<span className="font-mono text-xs">#{run.id}</span>

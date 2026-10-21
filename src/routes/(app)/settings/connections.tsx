@@ -5,6 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { CenteredLoader } from "#/components/centered-loader";
+import { EmptyState } from "#/components/empty-state";
+import { PageHeader } from "#/components/page-header";
+import { SettingsNav } from "#/components/settings-nav";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
@@ -36,21 +39,20 @@ function ConnectionsPage() {
 	}
 
 	return (
-		<div className="space-y-6">
-			<h1 className="font-bold text-2xl">Connections</h1>
+		<div className="space-y-8">
+			<PageHeader
+				description="Link GPS trackers, FASTag and diesel cards to each vehicle. Everything stays attached to the asset it belongs to."
+				eyebrow="Account / Connections"
+				title="Connections"
+			/>
+			<SettingsNav />
 
 			{vehicles.length === 0 ? (
-				<Card>
-					<CardContent className="flex flex-col items-center gap-4 py-12">
-						<Link2 className="h-12 w-12 text-muted-foreground" />
-						<div className="text-center">
-							<h2 className="font-semibold text-lg">No vehicles yet</h2>
-							<p className="text-muted-foreground text-sm">
-								Add a vehicle before linking GPS, FASTag, or diesel cards
-							</p>
-						</div>
-					</CardContent>
-				</Card>
+				<EmptyState
+					description="Add a vehicle first, then link its GPS, FASTag or diesel card."
+					icon={Link2}
+					title="No vehicles yet"
+				/>
 			) : (
 				<>
 					<div className="max-w-sm">
@@ -83,11 +85,9 @@ function ConnectionsPage() {
 							<DieselCard vehicleId={selectedId} />
 						</div>
 					) : (
-						<Card>
-							<CardContent className="py-8 text-center text-muted-foreground text-sm">
-								Select a vehicle to manage its linked devices
-							</CardContent>
-						</Card>
+						<div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-muted-foreground text-sm">
+							Select a vehicle to manage its linked devices.
+						</div>
 					)}
 				</>
 			)}

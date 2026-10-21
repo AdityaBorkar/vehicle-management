@@ -5,6 +5,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { PageHeader } from "#/components/page-header";
 import { Button } from "#/components/ui/button";
 import {
 	Card,
@@ -129,16 +130,20 @@ function UpiQrPage(): ReactNode {
 	}
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="font-bold text-2xl">UPI Payment QR</h1>
-				<p className="text-muted-foreground text-sm">
-					Enter an amount to generate a scannable UPI QR with a hidden tracking
-					note.
-				</p>
-			</div>
+		<div className="space-y-8">
+			<PageHeader
+				description="Enter an amount to generate a scannable UPI QR with a hidden tracking note."
+				eyebrow="Payments / UPI"
+				meta={
+					<>
+						<span>5-character tracking reference</span>
+						<span>Download as SVG or copy the payment link</span>
+					</>
+				}
+				title="UPI payment QR"
+			/>
 
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid gap-6 md:grid-cols-2">
 				<Card>
 					<CardHeader>
 						<CardTitle>Payment details</CardTitle>
@@ -149,7 +154,8 @@ function UpiQrPage(): ReactNode {
 					<CardContent>
 						<form className="space-y-4" onSubmit={handleSubmit}>
 							{error !== "" ? (
-								<div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
+								<div className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/5 px-3.5 py-3 text-destructive text-sm">
+									<span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-destructive" />
 									{error}
 								</div>
 							) : null}
@@ -181,7 +187,7 @@ function UpiQrPage(): ReactNode {
 							{/* Hidden tracking remark — auto-generated per QR, never typed. */}
 							<input name="tn" readOnly type="hidden" value={qr?.note ?? ""} />
 							<Button className="w-full" type="submit">
-								<QrCode className="mr-2 h-4 w-4" />
+								<QrCode className="size-4" />
 								Generate QR
 							</Button>
 						</form>
@@ -200,14 +206,16 @@ function UpiQrPage(): ReactNode {
 					<CardContent>
 						{!qr ? (
 							<div className="flex flex-col items-center gap-3 py-12 text-center">
-								<QrCode className="h-12 w-12 text-muted-foreground" />
+								<span className="grid size-12 place-items-center rounded-full border border-border">
+									<QrCode className="size-5 text-muted-foreground" />
+								</span>
 								<p className="text-muted-foreground text-sm">
 									Enter a UPI ID and amount, then generate a QR.
 								</p>
 							</div>
 						) : (
 							<div className="flex flex-col items-center gap-4">
-								<div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-foreground/10">
+								<div className="rounded-2xl border border-border bg-white p-4">
 									<QRCodeSVG
 										height={224}
 										ref={svgRef}
@@ -231,7 +239,7 @@ function UpiQrPage(): ReactNode {
 										</dd>
 									</div>
 								</dl>
-								<p className="w-full break-all rounded-md bg-muted p-2 font-mono text-muted-foreground text-xs">
+								<p className="w-full break-all rounded-xl border border-border bg-muted/40 p-2.5 font-mono text-muted-foreground text-xs">
 									{qr.uri}
 								</p>
 								<div className="flex w-full flex-wrap gap-2">
@@ -242,9 +250,9 @@ function UpiQrPage(): ReactNode {
 										variant="outline"
 									>
 										{copied ? (
-											<Check className="mr-2 h-4 w-4" />
+											<Check className="size-4" />
 										) : (
-											<Copy className="mr-2 h-4 w-4" />
+											<Copy className="size-4" />
 										)}
 										{copied ? "Copied" : "Copy link"}
 									</Button>
@@ -254,7 +262,7 @@ function UpiQrPage(): ReactNode {
 										type="button"
 										variant="outline"
 									>
-										<Download className="mr-2 h-4 w-4" />
+										<Download className="size-4" />
 										Download
 									</Button>
 									<Button
@@ -263,7 +271,7 @@ function UpiQrPage(): ReactNode {
 										type="button"
 										variant="ghost"
 									>
-										<RefreshCw className="mr-2 h-4 w-4" />
+										<RefreshCw className="size-4" />
 										New code
 									</Button>
 								</div>

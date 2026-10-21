@@ -1,19 +1,8 @@
-import {
-	IconCheck,
-	IconDeviceDesktop,
-	IconMoon,
-	IconSun,
-} from "@tabler/icons-react";
+import { IconDeviceDesktop, IconMoon, IconSun } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-import { Button } from "#/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
+import { cn } from "#/lib/utils";
 
 const themeOptions = [
 	{ icon: IconSun, label: "Light", value: "light" },
@@ -29,42 +18,51 @@ export function ThemeToggle({ className }: { className?: string }) {
 		setMounted(true);
 	}, []);
 
-	const ActiveIcon =
-		(mounted && themeOptions.find((option) => option.value === theme)?.icon) ||
-		IconDeviceDesktop;
+	const activeIndex = mounted
+		? Math.max(
+				0,
+				themeOptions.findIndex((option) => option.value === theme),
+			)
+		: 2;
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger
-				aria-label="Change theme"
-				render={
-					<Button
-						className={className}
-						size="icon-sm"
-						type="button"
-						variant="ghost"
-					>
-						<ActiveIcon className="h-4 w-4" />
-					</Button>
-				}
+		<div
+			aria-label="Color theme"
+			className={cn(
+				"relative inline-flex items-center rounded-full border border-border bg-muted/60 p-0.5 backdrop-blur-sm",
+				className,
+			)}
+			role="group"
+		>
+			<span
+				aria-hidden="true"
+				className="pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 w-7 rounded-full border border-border bg-background shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
+				style={{
+					opacity: mounted ? 1 : 0,
+					transform: `translateX(${activeIndex * 30}px)`,
+				}}
 			/>
-			<DropdownMenuContent align="end">
-				{themeOptions.map(({ icon: Icon, label, value }) => (
-					<DropdownMenuItem
-						className="justify-between"
+			{themeOptions.map(({ icon: Icon, label, value }) => {
+				const active = mounted && theme === value;
+				return (
+					<button
+						aria-label={`${label} theme`}
+						aria-pressed={active}
+						className={cn(
+							"relative z-10 grid size-7 place-items-center rounded-full transition-colors duration-300",
+							active
+								? "text-foreground"
+								: "text-muted-foreground hover:text-foreground",
+						)}
 						key={value}
 						onClick={() => setTheme(value)}
+						title={`${label} theme`}
+						type="button"
 					>
-						<span className="flex items-center gap-2">
-							<Icon className="h-4 w-4" />
-							{label}
-						</span>
-						{mounted && theme === value && (
-							<IconCheck className="h-4 w-4 text-primary" />
-						)}
-					</DropdownMenuItem>
-				))}
-			</DropdownMenuContent>
-		</DropdownMenu>
+						<Icon className="size-3.5" stroke={1.8} />
+					</button>
+				);
+			})}
+		</div>
 	);
 }

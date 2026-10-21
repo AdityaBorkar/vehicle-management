@@ -33,9 +33,9 @@ export function PuccCertificateButton({
 			variant="outline"
 		>
 			{busy ? (
-				<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+				<Loader2 className="size-4 animate-spin" />
 			) : (
-				<ShieldCheck className="mr-2 h-4 w-4" />
+				<ShieldCheck className="size-4" />
 			)}
 			{busy ? "Fetching PUCC…" : "Show PUCC Certificate"}
 		</Button>
@@ -56,9 +56,9 @@ export function PuccCertificateMenuItem({
 	return (
 		<DropdownMenuItem disabled={busy} onClick={open}>
 			{busy ? (
-				<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+				<Loader2 className="size-4 animate-spin" />
 			) : (
-				<ShieldCheck className="mr-2 h-4 w-4" />
+				<ShieldCheck className="size-4" />
 			)}
 			{busy ? "Fetching PUCC…" : "Show PUCC certificate"}
 		</DropdownMenuItem>
